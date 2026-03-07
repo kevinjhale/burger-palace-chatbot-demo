@@ -1,0 +1,461 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+  <meta charset="UTF-8" />
+  <meta name="viewport" content="width=device-width, initial-scale=1.0"/>
+  <title>Burger Palace — AI Assistant</title>
+  <style>
+    * { box-sizing: border-box; margin: 0; padding: 0; }
+
+    body {
+      font-family: -apple-system, BlinkMacSystemFont, 'Segoe UI', sans-serif;
+      background: #1a1a1a;
+      display: flex;
+      justify-content: center;
+      align-items: center;
+      min-height: 100vh;
+      padding: 20px;
+    }
+
+    .page-wrapper {
+      display: flex;
+      flex-direction: column;
+      align-items: center;
+      gap: 24px;
+      width: 100%;
+      max-width: 480px;
+    }
+
+    /* Header */
+    .brand-header {
+      text-align: center;
+    }
+
+    .brand-header .logo {
+      font-size: 2.2rem;
+      font-weight: 900;
+      color: #ff4500;
+      letter-spacing: -1px;
+    }
+
+    .brand-header .logo span {
+      color: #ffd700;
+    }
+
+    .brand-header .tagline {
+      font-size: 0.85rem;
+      color: #888;
+      margin-top: 4px;
+      letter-spacing: 0.05em;
+      text-transform: uppercase;
+    }
+
+    /* Chat container */
+    .chat-container {
+      width: 100%;
+      background: #242424;
+      border-radius: 20px;
+      overflow: hidden;
+      box-shadow: 0 20px 60px rgba(0,0,0,0.5);
+      border: 1px solid #333;
+    }
+
+    /* Chat header */
+    .chat-header {
+      background: #ff4500;
+      padding: 16px 20px;
+      display: flex;
+      align-items: center;
+      gap: 12px;
+    }
+
+    .avatar {
+      width: 40px;
+      height: 40px;
+      border-radius: 50%;
+      background: #ffd700;
+      display: flex;
+      align-items: center;
+      justify-content: center;
+      font-size: 1.2rem;
+      flex-shrink: 0;
+    }
+
+    .chat-header-info .name {
+      font-weight: 700;
+      color: white;
+      font-size: 1rem;
+    }
+
+    .chat-header-info .status {
+      font-size: 0.75rem;
+      color: rgba(255,255,255,0.8);
+      display: flex;
+      align-items: center;
+      gap: 5px;
+    }
+
+    .status-dot {
+      width: 7px;
+      height: 7px;
+      border-radius: 50%;
+      background: #7dff7d;
+      display: inline-block;
+    }
+
+    /* Messages */
+    .messages {
+      height: 420px;
+      overflow-y: auto;
+      padding: 20px;
+      display: flex;
+      flex-direction: column;
+      gap: 14px;
+      scroll-behavior: smooth;
+    }
+
+    .messages::-webkit-scrollbar { width: 4px; }
+    .messages::-webkit-scrollbar-track { background: transparent; }
+    .messages::-webkit-scrollbar-thumb { background: #444; border-radius: 2px; }
+
+    .message {
+      display: flex;
+      gap: 10px;
+      align-items: flex-end;
+      max-width: 88%;
+      animation: fadeUp 0.2s ease;
+    }
+
+    @keyframes fadeUp {
+      from { opacity: 0; transform: translateY(8px); }
+      to   { opacity: 1; transform: translateY(0); }
+    }
+
+    .message.user {
+      align-self: flex-end;
+      flex-direction: row-reverse;
+    }
+
+    .message.bot {
+      align-self: flex-start;
+    }
+
+    .msg-avatar {
+      width: 28px;
+      height: 28px;
+      border-radius: 50%;
+      background: #ff4500;
+      display: flex;
+      align-items: center;
+      justify-content: center;
+      font-size: 0.8rem;
+      flex-shrink: 0;
+    }
+
+    .message.user .msg-avatar {
+      background: #444;
+    }
+
+    .bubble {
+      padding: 10px 14px;
+      border-radius: 18px;
+      font-size: 0.9rem;
+      line-height: 1.5;
+      max-width: 100%;
+    }
+
+    .message.bot .bubble {
+      background: #2e2e2e;
+      color: #f0f0f0;
+      border-bottom-left-radius: 4px;
+    }
+
+    .message.user .bubble {
+      background: #ff4500;
+      color: white;
+      border-bottom-right-radius: 4px;
+    }
+
+    /* Typing indicator */
+    .typing-indicator {
+      display: flex;
+      align-items: center;
+      gap: 10px;
+      align-self: flex-start;
+      animation: fadeUp 0.2s ease;
+    }
+
+    .typing-dots {
+      background: #2e2e2e;
+      border-radius: 18px;
+      border-bottom-left-radius: 4px;
+      padding: 12px 16px;
+      display: flex;
+      gap: 5px;
+      align-items: center;
+    }
+
+    .typing-dots span {
+      width: 7px;
+      height: 7px;
+      background: #888;
+      border-radius: 50%;
+      animation: bounce 1.2s infinite ease-in-out;
+    }
+
+    .typing-dots span:nth-child(2) { animation-delay: 0.15s; }
+    .typing-dots span:nth-child(3) { animation-delay: 0.3s; }
+
+    @keyframes bounce {
+      0%, 60%, 100% { transform: translateY(0); }
+      30% { transform: translateY(-6px); }
+    }
+
+    /* Input area */
+    .input-area {
+      padding: 16px;
+      border-top: 1px solid #333;
+      display: flex;
+      gap: 10px;
+      align-items: center;
+      background: #1e1e1e;
+    }
+
+    #user-input {
+      flex: 1;
+      background: #2e2e2e;
+      border: 1px solid #3a3a3a;
+      border-radius: 24px;
+      padding: 10px 16px;
+      color: #f0f0f0;
+      font-size: 0.9rem;
+      outline: none;
+      transition: border-color 0.2s;
+      font-family: inherit;
+    }
+
+    #user-input:focus {
+      border-color: #ff4500;
+    }
+
+    #user-input::placeholder {
+      color: #666;
+    }
+
+    #send-btn {
+      width: 42px;
+      height: 42px;
+      border-radius: 50%;
+      background: #ff4500;
+      border: none;
+      cursor: pointer;
+      display: flex;
+      align-items: center;
+      justify-content: center;
+      transition: background 0.2s, transform 0.1s;
+      flex-shrink: 0;
+    }
+
+    #send-btn:hover { background: #e03d00; }
+    #send-btn:active { transform: scale(0.92); }
+    #send-btn:disabled { background: #555; cursor: not-allowed; }
+
+    #send-btn svg {
+      width: 18px;
+      height: 18px;
+      fill: white;
+    }
+
+    /* Quick suggestion chips */
+    .suggestions {
+      display: flex;
+      flex-wrap: wrap;
+      gap: 8px;
+      padding: 0 16px 12px;
+      background: #1e1e1e;
+    }
+
+    .chip {
+      background: #2e2e2e;
+      border: 1px solid #3a3a3a;
+      border-radius: 20px;
+      padding: 6px 12px;
+      font-size: 0.78rem;
+      color: #ccc;
+      cursor: pointer;
+      transition: all 0.15s;
+      white-space: nowrap;
+    }
+
+    .chip:hover {
+      background: #ff450020;
+      border-color: #ff4500;
+      color: #ff4500;
+    }
+
+    /* Footer note */
+    .footer-note {
+      font-size: 0.72rem;
+      color: #555;
+      text-align: center;
+    }
+  </style>
+</head>
+<body>
+
+<div class="page-wrapper">
+
+  <div class="brand-header">
+    <div class="logo">Burger <span>Palace</span></div>
+    <div class="tagline">Ask Bella anything</div>
+  </div>
+
+  <div class="chat-container">
+
+    <div class="chat-header">
+      <div class="avatar">🍔</div>
+      <div class="chat-header-info">
+        <div class="name">Bella</div>
+        <div class="status"><span class="status-dot"></span> Online now</div>
+      </div>
+    </div>
+
+    <div class="messages" id="messages">
+      <div class="message bot">
+        <div class="msg-avatar">🍔</div>
+        <div class="bubble">Hey there! I'm Bella, your Burger Palace assistant. Ask me anything — menu, hours, dietary info, you name it!</div>
+      </div>
+    </div>
+
+    <div class="suggestions" id="suggestions">
+      <span class="chip" onclick="sendChip(this)">What's on the menu?</span>
+      <span class="chip" onclick="sendChip(this)">Do you have vegan options?</span>
+      <span class="chip" onclick="sendChip(this)">What are your hours?</span>
+      <span class="chip" onclick="sendChip(this)">How spicy is the Nashville Hot?</span>
+    </div>
+
+    <div class="input-area">
+      <input type="text" id="user-input" placeholder="Ask Bella something..." autocomplete="off" />
+      <button id="send-btn" onclick="sendMessage()">
+        <svg viewBox="0 0 24 24" xmlns="http://www.w3.org/2000/svg">
+          <path d="M2.01 21L23 12 2.01 3 2 10l15 2-15 2z"/>
+        </svg>
+      </button>
+    </div>
+
+  </div>
+
+  <div class="footer-note">Powered by Burger Palace AI · (555) 123-4567</div>
+
+</div>
+
+<script>
+  const messagesEl = document.getElementById('messages');
+  const inputEl = document.getElementById('user-input');
+  const sendBtn = document.getElementById('send-btn');
+  const suggestionsEl = document.getElementById('suggestions');
+
+  let history = [];
+  let isLoading = false;
+
+  inputEl.addEventListener('keydown', e => {
+    if (e.key === 'Enter' && !e.shiftKey) {
+      e.preventDefault();
+      sendMessage();
+    }
+  });
+
+  function sendChip(el) {
+    inputEl.value = el.textContent;
+    suggestionsEl.style.display = 'none';
+    sendMessage();
+  }
+
+  function appendMessage(role, text) {
+    const wrapper = document.createElement('div');
+    wrapper.className = `message ${role}`;
+
+    const avatar = document.createElement('div');
+    avatar.className = 'msg-avatar';
+    avatar.textContent = role === 'bot' ? '🍔' : '👤';
+
+    const bubble = document.createElement('div');
+    bubble.className = 'bubble';
+    bubble.textContent = text;
+
+    wrapper.appendChild(avatar);
+    wrapper.appendChild(bubble);
+    messagesEl.appendChild(wrapper);
+    messagesEl.scrollTop = messagesEl.scrollHeight;
+    return wrapper;
+  }
+
+  function showTyping() {
+    const wrapper = document.createElement('div');
+    wrapper.className = 'typing-indicator';
+    wrapper.id = 'typing';
+
+    const avatar = document.createElement('div');
+    avatar.className = 'msg-avatar';
+    avatar.textContent = '🍔';
+
+    const dots = document.createElement('div');
+    dots.className = 'typing-dots';
+    dots.innerHTML = '<span></span><span></span><span></span>';
+
+    wrapper.appendChild(avatar);
+    wrapper.appendChild(dots);
+    messagesEl.appendChild(wrapper);
+    messagesEl.scrollTop = messagesEl.scrollHeight;
+  }
+
+  function hideTyping() {
+    const el = document.getElementById('typing');
+    if (el) el.remove();
+  }
+
+  async function sendMessage() {
+    const text = inputEl.value.trim();
+    if (!text || isLoading) return;
+
+    isLoading = true;
+    sendBtn.disabled = true;
+    inputEl.value = '';
+    suggestionsEl.style.display = 'none';
+
+    appendMessage('user', text);
+    showTyping();
+
+    try {
+      const res = await fetch('/chat', {
+        method: 'POST',
+        headers: { 'Content-Type': 'application/json' },
+        body: JSON.stringify({ message: text, history })
+      });
+
+      if (!res.ok) throw new Error('Request failed');
+
+      const data = await res.json();
+      hideTyping();
+      appendMessage('bot', data.response);
+
+      // Update history for multi-turn context
+      history.push({ role: 'user', content: text });
+      history.push({ role: 'assistant', content: data.response });
+
+      // Keep history bounded
+      if (history.length > 20) history = history.slice(-20);
+
+    } catch (err) {
+      hideTyping();
+      appendMessage('bot', "Sorry, something went wrong. Please try again or call us at (555) 123-4567!");
+    }
+
+    isLoading = false;
+    sendBtn.disabled = false;
+    inputEl.focus();
+  }
+</script>
+
+</body>
+</html>
