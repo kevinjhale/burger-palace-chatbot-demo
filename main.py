@@ -1,97 +1,80 @@
 import os
-import json
 import pickle
-import numpy as np
-from openai import OpenAI
+import re
+from pathlib import Path
+
+import anthropic
+from rank_bm25 import BM25Okapi
 from fastapi import FastAPI, HTTPException
 from fastapi.responses import HTMLResponse
 from fastapi.middleware.cors import CORSMiddleware
 from pydantic import BaseModel
 from dotenv import load_dotenv
-from pathlib import Path
 
 load_dotenv()
 
 app = FastAPI()
 app.add_middleware(CORSMiddleware, allow_origins=["*"], allow_methods=["*"], allow_headers=["*"])
 
-openai_client = OpenAI(api_key=os.getenv("OPENAI_API_KEY"))
+claude = anthropic.Anthropic(api_key=os.getenv("ANTHROPIC_API_KEY"))
 
-INDEX_PATH = Path("vector_index.pkl")
+INDEX_PATH = Path("bm25_index.pkl")
 
-# In-memory store: list of {"text": str, "embedding": np.ndarray}
-vector_store: list = []
-
-
-def cosine_similarity(a: np.ndarray, b: np.ndarray) -> float:
-    return float(np.dot(a, b) / (np.linalg.norm(a) * np.linalg.norm(b) + 1e-10))
+# In-memory BM25 index
+bm25: BM25Okapi | None = None
+chunks: list[str] = []
 
 
-def embed(texts: list[str]) -> list[np.ndarray]:
-    response = openai_client.embeddings.create(
-        model="text-embedding-3-small",
-        input=texts
-    )
-    return [np.array(r.embedding, dtype=np.float32) for r in response.data]
+def tokenize(text: str) -> list[str]:
+    """Lowercase, split on non-alphanumeric, remove empty tokens."""
+    return [t for t in re.split(r"[^a-z0-9]+", text.lower()) if t]
 
 
 def build_index():
-    global vector_store
+    global bm25, chunks
     print("Building knowledge base index...")
 
     text = Path("knowledge_base.txt").read_text(encoding="utf-8")
-    chunks = [c.strip() for c in text.split("\n\n") if len(c.strip()) > 40]
+    raw = [c.strip() for c in text.split("\n\n") if len(c.strip()) > 40]
+    chunks = raw
 
-    print(f"Embedding {len(chunks)} chunks...")
+    tokenized = [tokenize(c) for c in chunks]
+    bm25 = BM25Okapi(tokenized)
 
-    BATCH = 20
-    store = []
-    for i in range(0, len(chunks), BATCH):
-        batch = chunks[i:i+BATCH]
-        embeddings = embed(batch)
-        for text_chunk, emb in zip(batch, embeddings):
-            store.append({"text": text_chunk, "embedding": emb})
-
-    vector_store = store
-    INDEX_PATH.write_bytes(pickle.dumps(store))
-    print(f"Index built: {len(store)} chunks stored.")
+    INDEX_PATH.write_bytes(pickle.dumps({"chunks": chunks, "bm25": bm25}))
+    print(f"Index built: {len(chunks)} chunks.")
 
 
-def load_index():
-    global vector_store
+def load_index() -> bool:
+    global bm25, chunks
     if INDEX_PATH.exists():
-        vector_store = pickle.loads(INDEX_PATH.read_bytes())
-        print(f"Index loaded: {len(vector_store)} chunks.")
+        data = pickle.loads(INDEX_PATH.read_bytes())
+        chunks = data["chunks"]
+        bm25 = data["bm25"]
+        print(f"Index loaded: {len(chunks)} chunks.")
         return True
     return False
 
 
-def retrieve_context(query: str, n: int = 4) -> str:
-    if not vector_store:
+def retrieve_context(query: str, n: int = 5) -> str:
+    if bm25 is None:
         return ""
-
-    query_emb = embed([query])[0]
-
-    scored = [
-        (cosine_similarity(query_emb, item["embedding"]), item["text"])
-        for item in vector_store
-    ]
-    scored.sort(reverse=True)
-    top = [text for _, text in scored[:n]]
-    return "\n\n".join(top)
+    scores = bm25.get_scores(tokenize(query))
+    top_indices = sorted(range(len(scores)), key=lambda i: scores[i], reverse=True)[:n]
+    return "\n\n".join(chunks[i] for i in top_indices if scores[i] > 0)
 
 
-SYSTEM_PROMPT = """You are Bella, the friendly assistant for Burger Palace.
+SYSTEM_PROMPT = """You are Bella, the friendly AI assistant for Burger Palace.
 
 Help customers with questions about the menu, hours, location, dietary needs,
-ordering options, and anything else related to Burger Palace.
+ordering, and anything else related to Burger Palace.
 
 RULES:
-- Only answer questions about Burger Palace using the context provided below.
+- Answer only using the context provided below. Do not make anything up.
 - If the answer is not in the context, say: "I don't have that info on hand — give us a call at (555) 123-4567!"
-- Never make up prices, items, or ingredients.
+- Never invent prices, items, or ingredients.
 - Keep responses warm, friendly, and concise — 1 to 3 sentences max.
-- Write in natural sentences, no bullet points or markdown.
+- Write in natural sentences. No bullet points, no markdown formatting.
 - Never claim to be human. If asked, confirm you are Bella the AI assistant.
 
 BURGER PALACE CONTEXT:
@@ -120,20 +103,20 @@ async def chat(req: ChatRequest):
 
     context = retrieve_context(req.message)
 
-    messages = [
-        {"role": "system", "content": SYSTEM_PROMPT.format(context=context)},
-        *req.history[-10:],
-        {"role": "user", "content": req.message}
-    ]
+    # Build message history for Claude (alternating user/assistant required)
+    history = req.history[-10:]
 
-    response = openai_client.chat.completions.create(
-        model="gpt-4o-mini",
-        messages=messages,
-        temperature=0.4,
-        max_tokens=200
+    response = claude.messages.create(
+        model="claude-haiku-4-5-20251001",
+        max_tokens=300,
+        system=SYSTEM_PROMPT.format(context=context),
+        messages=[
+            *history,
+            {"role": "user", "content": req.message}
+        ]
     )
 
-    return ChatResponse(response=response.choices[0].message.content)
+    return ChatResponse(response=response.content[0].text)
 
 
 @app.post("/rebuild-index")

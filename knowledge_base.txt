@@ -65,9 +65,11 @@ Any burger or sandwich + Medium Fries + Medium Drink = $2.50 off individual pric
 Ask about our #1 through #7 combos — each one is a burger or sandwich paired with fries and a drink.
 
 --- HOURS ---
-Monday through Thursday: 10:30am to 10:00pm
-Friday and Saturday: 10:30am to 12:00am (midnight)
-Sunday: 11:00am to 9:00pm
+We open at 10:30am Monday through Saturday, and 11:00am on Sunday.
+We close at 10:00pm Monday through Thursday, midnight (12:00am) on Friday and Saturday, and 9:00pm on Sunday.
+Monday through Thursday: open 10:30am, close 10:00pm
+Friday and Saturday: open 10:30am, close 12:00am (midnight)
+Sunday: open 11:00am, close 9:00pm
 We are open every day including most holidays. Hours may vary on Thanksgiving and Christmas — check our social media for updates.
 
 --- LOCATION AND PARKING ---
