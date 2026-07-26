@@ -204,7 +204,28 @@ p.hint { color: var(--ink-soft); font-size: 0.85rem; margin: 0 0 12px; }
 .wire-form select { padding: 7px 8px; border: 1px solid var(--border); border-radius: 8px; font-size: 0.85rem; }
 
 .pool-head { display: flex; align-items: center; justify-content: space-between; margin-bottom: 8px; flex-wrap: wrap; gap: 8px; }
-.wire-pool-list { display: flex; flex-wrap: wrap; gap: 8px; margin-bottom: 18px; min-height: 40px; }
+.cables-list { display: flex; flex-direction: column; gap: 12px; margin-bottom: 18px; }
+
+.cable-card { border: 1px solid var(--border); border-radius: 10px; padding: 10px 12px; background: var(--device-bg); }
+.cable-card-head { display: flex; align-items: center; gap: 10px; margin-bottom: 8px; }
+.cable-title-input { border: none; background: transparent; font-weight: 700; font-size: 0.88rem; flex: 1; min-width: 80px; color: var(--ink); font-family: inherit; }
+.cable-title-input:focus { outline: 1px solid var(--border); border-radius: 4px; }
+.cable-conductors { display: flex; flex-wrap: wrap; gap: 6px; }
+
+.jacket-badge {
+  font-family: var(--font-label);
+  font-size: 0.68rem;
+  font-weight: 700;
+  letter-spacing: 0.02em;
+  padding: 3px 8px;
+  border-radius: 5px;
+  border: 1px solid rgba(0,0,0,0.3);
+  color: #2a2416;
+  white-space: nowrap;
+  flex-shrink: 0;
+}
+.jacket-badge.g14 { background: var(--jacket-14); }
+.jacket-badge.g12 { background: var(--jacket-12); }
 
 .wire-chip {
   display: flex;
@@ -220,9 +241,6 @@ p.hint { color: var(--ink-soft); font-size: 0.85rem; margin: 0 0 12px; }
 }
 .wire-chip.selected { border-color: var(--accent); background: var(--tint); }
 .wire-chip.highlight { box-shadow: 0 0 0 2px var(--accent); }
-.wire-jacket { width: 14px; height: 14px; border-radius: 50%; border: 2px solid rgba(0,0,0,0.4); flex-shrink: 0; }
-.wire-jacket.g14 { background: var(--jacket-14); }
-.wire-jacket.g12 { background: var(--jacket-12); }
 .wire-color-dot { width: 10px; height: 10px; border-radius: 50%; flex-shrink: 0; border: 1px solid rgba(0,0,0,0.35); }
 .c-black { background: var(--wire-black); }
 .c-white { background: var(--wire-white); }

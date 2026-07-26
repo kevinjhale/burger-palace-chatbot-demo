@@ -44,27 +44,22 @@
   <!-- Wires -->
   <section class="panel wires-panel">
     <h2>3. Wires</h2>
-    <form id="wireForm" class="wire-form">
-      <input type="text" id="wireLabel" placeholder="Label (e.g. Line from panel)" required maxlength="40">
-      <select id="wireGauge">
-        <option value="14">14 AWG</option>
-        <option value="12">12 AWG</option>
+    <form id="cableForm" class="wire-form">
+      <input type="text" id="cableLabel" placeholder="Cable run (e.g. Line from panel)" required maxlength="40">
+      <select id="cableType">
+        <option value="14-2">14/2 w/G (Black, White, Ground)</option>
+        <option value="12-2">12/2 w/G (Black, White, Ground)</option>
+        <option value="14-3">14/3 w/G (Black, White, Red, Ground)</option>
       </select>
-      <select id="wireColor">
-        <option value="black">Black (Hot)</option>
-        <option value="white">White (Neutral)</option>
-        <option value="red">Red (Traveler/Hot)</option>
-        <option value="ground">Bare/Green (Ground)</option>
-      </select>
-      <button type="submit" class="btn btn-primary">+ Add Wire</button>
+      <button type="submit" class="btn btn-primary">+ Pull Cable</button>
     </form>
 
     <div class="wires-pool">
       <div class="pool-head">
-        <h3>Unassigned Wires</h3>
+        <h3>Cables</h3>
         <button id="bundleBtn" class="btn btn-secondary" disabled>🌀 Twist Selected Into Wire Nut</button>
       </div>
-      <div id="wirePool" class="wire-pool-list"></div>
+      <div id="cablesContainer" class="cables-list"></div>
     </div>
 
     <div class="nuts-list">

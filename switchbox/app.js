@@ -1,7 +1,7 @@
 (() => {
   "use strict";
 
-  const STORAGE_KEY = "switchbox_state_v1";
+  const STORAGE_KEY = "switchbox_state_v2";
 
   const SWITCH_TYPES = {
     "single-pole": {
@@ -25,9 +25,14 @@
 
   const COLOR_LABEL = { black: "Black", white: "White", red: "Red", ground: "Bare/Ground" };
 
+  const CABLE_TYPES = {
+    "14-2": { display: "14/2 w/G", gauge: "14", conductors: ["black", "white", "ground"] },
+    "12-2": { display: "12/2 w/G", gauge: "12", conductors: ["black", "white", "ground"] },
+    "14-3": { display: "14/3 w/G", gauge: "14", conductors: ["black", "white", "red", "ground"] },
+  };
+
   let uidCounter = 1;
   const uid = () => `id${Date.now().toString(36)}${(uidCounter++).toString(36)}`;
-  const capitalize = (s) => s.charAt(0).toUpperCase() + s.slice(1);
   const escapeHtml = (s) =>
     String(s).replace(/[&<>"']/g, (c) => ({ "&": "&amp;", "<": "&lt;", ">": "&gt;", '"': "&quot;", "'": "&#39;" }[c]));
 
@@ -36,6 +41,7 @@
     return {
       gangs: 1,
       switches: [{ id: swId, type: "single-pole" }],
+      cables: [],
       wires: [],
       nuts: [],
       terminals: { [swId]: { line: null, load: null, ground: null } },
@@ -44,7 +50,6 @@
 
   let state = loadState();
   let selectedForBundle = new Set();
-  let editingWireId = null;
   let currentStepIndex = 0;
   let modalTarget = null; // { switchId, key }
 
@@ -70,6 +75,15 @@
   const wireById = (id) => state.wires.find((w) => w.id === id);
   const nutById = (id) => state.nuts.find((n) => n.id === id);
   const switchById = (id) => state.switches.find((s) => s.id === id);
+  const cableById = (id) => state.cables.find((c) => c.id === id);
+
+  function wireDisplayLabel(w) {
+    const cable = cableById(w.cableId);
+    return `${cable ? cable.label : "Wire"} — ${COLOR_LABEL[w.color]}`;
+  }
+  function wireFull(w) {
+    return `${wireDisplayLabel(w)} (${w.gauge} AWG)`;
+  }
 
   function wireUsage(wireId) {
     const inNut = state.nuts.find((n) => n.wireIds.includes(wireId));
@@ -139,19 +153,14 @@
     render();
   }
 
-  function addWire(label, gauge, color) {
-    state.wires.push({ id: uid(), label: label.trim() || "Unnamed wire", gauge, color });
-    saveState();
-    render();
-  }
-
-  function updateWire(wireId, label, gauge, color) {
-    const w = wireById(wireId);
-    if (!w) return;
-    w.label = label.trim() || "Unnamed wire";
-    w.gauge = gauge;
-    w.color = color;
-    editingWireId = null;
+  function addCable(label, typeKey) {
+    const type = CABLE_TYPES[typeKey];
+    if (!type) return;
+    const cableId = uid();
+    state.cables.push({ id: cableId, label: label.trim() || "Unnamed cable", type: typeKey });
+    type.conductors.forEach((color) => {
+      state.wires.push({ id: uid(), cableId, color, gauge: type.gauge });
+    });
     saveState();
     render();
   }
@@ -181,6 +190,7 @@
   }
 
   function deleteWire(wireId) {
+    const wire = wireById(wireId);
     state.wires = state.wires.filter((w) => w.id !== wireId);
     state.nuts.forEach((n) => {
       n.wireIds = n.wireIds.filter((id) => id !== wireId);
@@ -188,6 +198,33 @@
     state.nuts.slice().forEach((n) => dissolveNutIfTooSmall(n));
     clearConnectionsToWire(wireId);
     selectedForBundle.delete(wireId);
+    if (wire && !state.wires.some((w) => w.cableId === wire.cableId)) {
+      state.cables = state.cables.filter((c) => c.id !== wire.cableId);
+    }
+    saveState();
+    render();
+  }
+
+  function deleteCable(cableId) {
+    const conductorIds = state.wires.filter((w) => w.cableId === cableId).map((w) => w.id);
+    conductorIds.forEach((id) => {
+      state.nuts.forEach((n) => {
+        n.wireIds = n.wireIds.filter((wid) => wid !== id);
+      });
+      clearConnectionsToWire(id);
+      selectedForBundle.delete(id);
+    });
+    state.nuts.slice().forEach((n) => dissolveNutIfTooSmall(n));
+    state.wires = state.wires.filter((w) => w.cableId !== cableId);
+    state.cables = state.cables.filter((c) => c.id !== cableId);
+    saveState();
+    render();
+  }
+
+  function renameCable(cableId, label) {
+    const cable = cableById(cableId);
+    if (!cable) return;
+    cable.label = label.trim() || cable.label;
     saveState();
     render();
   }
@@ -270,11 +307,10 @@
   }
 
   function resetAll() {
-    if (!confirm("Clear the box, all wires, wire nuts, and connections? This can't be undone.")) return;
+    if (!confirm("Clear the box, all cables, wire nuts, and connections? This can't be undone.")) return;
     uidCounter = 1;
     state = defaultState();
     selectedForBundle.clear();
-    editingWireId = null;
     currentStepIndex = 0;
     saveState();
     render();
@@ -289,7 +325,7 @@
     return nut.wireIds
       .map((id) => {
         const w = wireById(id);
-        return w ? `${w.gauge} AWG ${COLOR_LABEL[w.color]} ("${escapeHtml(w.label)}")` : "";
+        return w ? wireFull(w) : "";
       })
       .filter(Boolean)
       .join(", ");
@@ -317,12 +353,14 @@
       desc: `Secure the ${state.gangs}-gang box in the opening so its front edge sits flush with the finished wall surface, then feed the cables in through the knockouts and clamp them.`,
     });
 
-    if (state.wires.length > 0) {
+    if (state.cables.length > 0) {
       steps.push({
-        title: "Strip the Wires",
+        title: "Strip the Cables",
         desc:
-          "Strip about ¾ inch of insulation from the end of each conductor: " +
-          state.wires.map((w) => `${escapeHtml(w.label)} (${COLOR_LABEL[w.color]}, ${w.gauge} AWG)`).join("; ") +
+          "Strip the outer jacket back and strip about ¾ inch of insulation from the end of each conductor: " +
+          state.cables
+            .map((c) => `${escapeHtml(c.label)} (${CABLE_TYPES[c.type].display})`)
+            .join("; ") +
           ".",
         highlight: { wires: state.wires.map((w) => w.id) },
       });
@@ -331,7 +369,7 @@
     const used = new Set();
     const pushNutStep = (nut) => {
       const refs = terminalsReferencingNut(nut.id);
-      let desc = `Twist together ${describeWireNutWires(nut)} and cap with a wire nut.`;
+      let desc = `Twist together ${escapeHtml(describeWireNutWires(nut))} and cap with a wire nut.`;
       if (refs.length) {
         desc += " This bundle also feeds a pigtail to: " + refs.map((r) => `Switch ${r.switchIdx + 1} (${r.label})`).join(", ") + ".";
       }
@@ -358,7 +396,7 @@
         if (conn.type === "wire") {
           const w = wireById(conn.id);
           if (!w) return;
-          sourceDesc = `the ${COLOR_LABEL[w.color]} wire "${escapeHtml(w.label)}" (${w.gauge} AWG)`;
+          sourceDesc = escapeHtml(wireFull(w));
         } else {
           const n = nutById(conn.id);
           if (!n) return;
@@ -394,7 +432,7 @@
     renderGangSelect();
     renderSwitchTypes();
     renderDiagram();
-    renderWirePool();
+    renderCables();
     renderNuts();
     renderSteps();
   }
@@ -427,7 +465,7 @@
     if (conn.type === "wire") {
       const w = wireById(conn.id);
       if (!w) return { text: "Not connected", empty: true };
-      return { text: `${COLOR_LABEL[w.color]} ${w.gauge} AWG — ${escapeHtml(w.label)}`, empty: false };
+      return { text: escapeHtml(wireFull(w)), empty: false };
     }
     const n = nutById(conn.id);
     if (!n) return { text: "Not connected", empty: true };
@@ -465,71 +503,67 @@
       .join("");
   }
 
-  function renderWirePool() {
+  function conductorChip(w, { showActions } = { showActions: true }) {
+    const usage = wireUsage(w.id);
+    const isSelected = selectedForBundle.has(w.id);
+    const inUse = !!(usage.inNut || usage.onTerminal);
+    let usageNote = "";
+    if (usage.inNut) usageNote = `in "${escapeHtml(nutById(usage.inNut)?.label || "?")}"`;
+    else if (usage.onTerminal) {
+      const sw = switchById(usage.onTerminal.switchId);
+      const idx = state.switches.findIndex((s) => s.id === usage.onTerminal.switchId);
+      const def = SWITCH_TYPES[sw.type];
+      const t = def.terminals.find((t) => t.key === usage.onTerminal.key);
+      usageNote = `on Switch ${idx + 1} – ${t.label}`;
+    }
+    return `
+      <div class="wire-chip ${isSelected ? "selected" : ""}" data-wire-id="${w.id}" data-role="chip" title="${usageNote ? "In use " + usageNote : "Click to select for bundling"}">
+        <span class="wire-color-dot c-${w.color}"></span>
+        <span>
+          <div class="w-label">${COLOR_LABEL[w.color]}</div>
+          <div class="w-meta">${w.gauge} AWG${usageNote ? " · " + usageNote : ""}</div>
+        </span>
+        ${
+          showActions
+            ? `<span class="chip-actions">
+          <button type="button" data-action="delete-wire" data-wire-id="${w.id}" title="Remove this conductor">✕</button>
+        </span>`
+            : ""
+        }
+      </div>`;
+  }
+
+  function renderCables() {
     const bundleBtn = document.getElementById("bundleBtn");
     bundleBtn.disabled = selectedForBundle.size < 2;
 
-    const pool = document.getElementById("wirePool");
-    if (state.wires.length === 0) {
-      pool.innerHTML = `<p class="empty-note">No wires yet — add one above.</p>`;
+    const container = document.getElementById("cablesContainer");
+    if (state.cables.length === 0) {
+      container.innerHTML = `<p class="empty-note">No cables yet — pull one in above.</p>`;
       return;
     }
 
-    pool.innerHTML = state.wires
-      .map((w) => {
-        if (w.id === editingWireId) return renderWireEditForm(w);
-        const usage = wireUsage(w.id);
-        const isSelected = selectedForBundle.has(w.id);
-        let usageNote = "";
-        if (usage.inNut) usageNote = `in "${escapeHtml(nutById(usage.inNut)?.label || "?")}"`;
-        else if (usage.onTerminal) {
-          const sw = switchById(usage.onTerminal.switchId);
-          const idx = state.switches.findIndex((s) => s.id === usage.onTerminal.switchId);
-          const def = SWITCH_TYPES[sw.type];
-          const t = def.terminals.find((t) => t.key === usage.onTerminal.key);
-          usageNote = `on Switch ${idx + 1} – ${t.label}`;
-        }
+    container.innerHTML = state.cables
+      .map((cable) => {
+        const type = CABLE_TYPES[cable.type];
+        const conductors = state.wires.filter((w) => w.cableId === cable.id);
         return `
-        <div class="wire-chip ${isSelected ? "selected" : ""}" data-wire-id="${w.id}" data-role="chip" title="${usageNote ? "In use " + usageNote : "Click to select for bundling"}">
-          <span class="wire-jacket g${w.gauge}"></span>
-          <span class="wire-color-dot c-${w.color}"></span>
-          <span>
-            <div class="w-label">${escapeHtml(w.label)}</div>
-            <div class="w-meta">${w.gauge} AWG · ${COLOR_LABEL[w.color]}${usageNote ? " · " + usageNote : ""}</div>
-          </span>
-          <span class="chip-actions">
-            <button type="button" data-action="edit-wire" data-wire-id="${w.id}" title="Edit">✎</button>
-            <button type="button" data-action="delete-wire" data-wire-id="${w.id}" title="Delete">✕</button>
-          </span>
+        <div class="cable-card">
+          <div class="cable-card-head">
+            <span class="jacket-badge g${type.gauge}">${type.display}</span>
+            <input type="text" class="cable-title-input" value="${escapeHtml(cable.label)}" data-action="rename-cable" data-cable-id="${cable.id}">
+            <button type="button" class="nut-delete" data-action="delete-cable" data-cable-id="${cable.id}" title="Remove this cable">🗑</button>
+          </div>
+          <div class="cable-conductors">${conductors.map((w) => conductorChip(w)).join("")}</div>
         </div>`;
       })
       .join("");
   }
 
-  function renderWireEditForm(w) {
-    return `
-      <div class="wire-chip" style="flex-direction:column; align-items:stretch; border-radius:10px;">
-        <input type="text" data-edit="label" value="${escapeHtml(w.label)}" style="margin-bottom:4px;padding:4px;border:1px solid var(--border);border-radius:6px;">
-        <div style="display:flex; gap:4px;">
-          <select data-edit="gauge" style="flex:1;padding:4px;">
-            <option value="14" ${w.gauge === "14" ? "selected" : ""}>14 AWG</option>
-            <option value="12" ${w.gauge === "12" ? "selected" : ""}>12 AWG</option>
-          </select>
-          <select data-edit="color" style="flex:1;padding:4px;">
-            ${Object.entries(COLOR_LABEL).map(([v, l]) => `<option value="${v}" ${w.color === v ? "selected" : ""}>${l}</option>`).join("")}
-          </select>
-        </div>
-        <div style="display:flex; gap:4px; margin-top:6px;">
-          <button type="button" class="btn btn-primary" data-action="save-wire" data-wire-id="${w.id}" style="flex:1;">Save</button>
-          <button type="button" class="btn btn-ghost" data-action="cancel-edit-wire" style="flex:1;">Cancel</button>
-        </div>
-      </div>`;
-  }
-
   function renderNuts() {
     const el = document.getElementById("nutsContainer");
     if (state.nuts.length === 0) {
-      el.innerHTML = `<p class="empty-note">No wire nuts yet — select 2+ unassigned wires above and twist them together.</p>`;
+      el.innerHTML = `<p class="empty-note">No wire nuts yet — select 2+ unassigned conductors above and twist them together.</p>`;
       return;
     }
     el.innerHTML = state.nuts
@@ -541,9 +575,8 @@
             if (!w) return "";
             return `
             <div class="wire-chip" data-wire-id="${w.id}">
-              <span class="wire-jacket g${w.gauge}"></span>
               <span class="wire-color-dot c-${w.color}"></span>
-              <span class="w-label">${escapeHtml(w.label)}</span>
+              <span class="w-label">${escapeHtml(wireDisplayLabel(w))}</span>
               <span class="chip-actions">
                 <button type="button" data-action="remove-from-nut" data-nut-id="${nut.id}" data-wire-id="${w.id}" title="Remove from this wire nut">✕</button>
               </span>
@@ -567,7 +600,7 @@
           <div class="nut-add-row">
             <select data-action="add-to-nut" data-nut-id="${nut.id}">
               <option value="">+ Add wire to this nut…</option>
-              ${availableWires.map((w) => `<option value="${w.id}">${escapeHtml(w.label)} (${COLOR_LABEL[w.color]}, ${w.gauge} AWG)</option>`).join("")}
+              ${availableWires.map((w) => `<option value="${w.id}">${escapeHtml(wireFull(w))}</option>`).join("")}
             </select>
           </div>
         </div>`;
@@ -636,7 +669,7 @@
         <option value="">— Not connected —</option>
         <optgroup label="Wires">
           ${availableWires
-            .map((w) => `<option value="wire:${w.id}" ${current && current.type === "wire" && current.id === w.id ? "selected" : ""}>${escapeHtml(w.label)} (${COLOR_LABEL[w.color]}, ${w.gauge} AWG)</option>`)
+            .map((w) => `<option value="wire:${w.id}" ${current && current.type === "wire" && current.id === w.id ? "selected" : ""}>${escapeHtml(wireFull(w))}</option>`)
             .join("")}
         </optgroup>
         <optgroup label="Wire Nuts (pigtail)">
@@ -666,48 +699,41 @@
       }
     });
 
-    document.getElementById("wireForm").addEventListener("submit", (e) => {
+    document.getElementById("cableForm").addEventListener("submit", (e) => {
       e.preventDefault();
-      const label = document.getElementById("wireLabel").value;
-      const gauge = document.getElementById("wireGauge").value;
-      const color = document.getElementById("wireColor").value;
-      addWire(label, gauge, color);
-      document.getElementById("wireLabel").value = "";
-      document.getElementById("wireLabel").focus();
+      const label = document.getElementById("cableLabel").value;
+      const type = document.getElementById("cableType").value;
+      addCable(label, type);
+      document.getElementById("cableLabel").value = "";
+      document.getElementById("cableLabel").focus();
     });
 
     document.getElementById("bundleBtn").addEventListener("click", bundleSelected);
 
-    document.getElementById("wirePool").addEventListener("click", (e) => {
-      const editBtn = e.target.closest('[data-action="edit-wire"]');
+    document.getElementById("cablesContainer").addEventListener("click", (e) => {
       const delBtn = e.target.closest('[data-action="delete-wire"]');
-      const saveBtn = e.target.closest('[data-action="save-wire"]');
-      const cancelBtn = e.target.closest('[data-action="cancel-edit-wire"]');
-      if (editBtn) {
-        editingWireId = editBtn.dataset.wireId;
-        render();
-        return;
-      }
+      const delCableBtn = e.target.closest('[data-action="delete-cable"]');
       if (delBtn) {
-        if (confirm("Delete this wire? It will be removed from any wire nut or terminal it's connected to.")) deleteWire(delBtn.dataset.wireId);
+        if (confirm("Remove this conductor? It will be removed from any wire nut or terminal it's connected to.")) deleteWire(delBtn.dataset.wireId);
         return;
       }
-      if (saveBtn) {
-        const chip = saveBtn.closest(".wire-chip");
-        const label = chip.querySelector('[data-edit="label"]').value;
-        const gauge = chip.querySelector('[data-edit="gauge"]').value;
-        const color = chip.querySelector('[data-edit="color"]').value;
-        updateWire(saveBtn.dataset.wireId, label, gauge, color);
-        return;
-      }
-      if (cancelBtn) {
-        editingWireId = null;
-        render();
+      if (delCableBtn) {
+        if (confirm("Remove this whole cable and all its conductors?")) deleteCable(delCableBtn.dataset.cableId);
         return;
       }
       const chip = e.target.closest('[data-role="chip"]');
       if (chip) toggleWireSelect(chip.dataset.wireId);
     });
+
+    document.getElementById("cablesContainer").addEventListener(
+      "blur",
+      (e) => {
+        if (e.target.dataset.action === "rename-cable") {
+          renameCable(e.target.dataset.cableId, e.target.value);
+        }
+      },
+      true
+    );
 
     document.getElementById("nutsContainer").addEventListener("click", (e) => {
       const rm = e.target.closest('[data-action="remove-from-nut"]');
@@ -728,11 +754,15 @@
       }
     });
 
-    document.getElementById("nutsContainer").addEventListener("blur", (e) => {
-      if (e.target.dataset.action === "rename-nut") {
-        renameNut(e.target.dataset.nutId, e.target.value);
-      }
-    }, true);
+    document.getElementById("nutsContainer").addEventListener(
+      "blur",
+      (e) => {
+        if (e.target.dataset.action === "rename-nut") {
+          renameNut(e.target.dataset.nutId, e.target.value);
+        }
+      },
+      true
+    );
 
     document.getElementById("boxDiagram").addEventListener("click", (e) => {
       const row = e.target.closest(".terminal-row");
