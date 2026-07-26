@@ -247,7 +247,7 @@ p.hint { color: var(--ink-soft); font-size: 0.85rem; margin: 0 0 12px; }
 .c-red { background: var(--wire-red); }
 .c-ground { background: var(--wire-ground); }
 .wire-chip .w-label { font-weight: 600; }
-.wire-chip .w-meta { color: var(--ink-soft); font-size: 0.7rem; }
+.wire-chip .w-meta { color: var(--ink-soft); font-size: 0.7rem; font-weight: 400; }
 .chip-actions { display: flex; gap: 4px; margin-left: 4px; }
 .chip-actions button { border: none; background: transparent; cursor: pointer; font-size: 0.8rem; color: var(--ink-soft); padding: 0 2px; }
 .chip-actions button:hover { color: var(--danger); }
@@ -269,6 +269,9 @@ p.hint { color: var(--ink-soft); font-size: 0.85rem; margin: 0 0 12px; }
 .nut-add-row { display: flex; gap: 6px; align-items: center; }
 .nut-add-row select { flex: 1; padding: 5px; border-radius: 6px; border: 1px solid var(--border); font-size: 0.78rem; }
 .nut-add-row button { font-size: 0.75rem; padding: 5px 8px; }
+.nut-pigtail-row { display: flex; gap: 6px; align-items: center; margin-top: 6px; padding-top: 6px; border-top: 1px dashed var(--border); }
+.nut-pigtail-row select { padding: 5px; border-radius: 6px; border: 1px solid var(--border); font-size: 0.78rem; }
+.nut-pigtail-row button { font-size: 0.75rem; padding: 5px 8px; white-space: nowrap; }
 .nut-warning { font-size: 0.73rem; color: var(--brass); margin-top: 4px; }
 .empty-note { color: var(--ink-soft); font-size: 0.82rem; font-style: italic; }
 

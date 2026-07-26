@@ -1,7 +1,7 @@
 (() => {
   "use strict";
 
-  const STORAGE_KEY = "switchbox_state_v2";
+  const STORAGE_KEY = "switchbox_state_v3";
 
   const SWITCH_TYPES = {
     "single-pole": {
@@ -78,11 +78,18 @@
   const cableById = (id) => state.cables.find((c) => c.id === id);
 
   function wireDisplayLabel(w) {
+    if (w.isPigtail) return `Pigtail — ${COLOR_LABEL[w.color]}`;
     const cable = cableById(w.cableId);
     return `${cable ? cable.label : "Wire"} — ${COLOR_LABEL[w.color]}`;
   }
   function wireFull(w) {
     return `${wireDisplayLabel(w)} (${w.gauge} AWG)`;
+  }
+
+  function nutDominantGauge(nut) {
+    const gauges = nut.wireIds.map((id) => wireById(id)?.gauge).filter(Boolean);
+    if (gauges.length && gauges.every((g) => g === gauges[0])) return gauges[0];
+    return "14";
   }
 
   function wireUsage(wireId) {
@@ -98,21 +105,6 @@
       }
     }
     return { inNut: inNut ? inNut.id : null, onTerminal };
-  }
-
-  function terminalsReferencingNut(nutId) {
-    const refs = [];
-    state.switches.forEach((sw, idx) => {
-      const def = SWITCH_TYPES[sw.type];
-      const termMap = state.terminals[sw.id] || {};
-      def.terminals.forEach((t) => {
-        const conn = termMap[t.key];
-        if (conn && conn.type === "nut" && conn.id === nutId) {
-          refs.push({ switchIdx: idx, label: t.label });
-        }
-      });
-    });
-    return refs;
   }
 
   // ---------- mutations ----------
@@ -175,15 +167,18 @@
     });
   }
 
+  function deletePigtail(wireId) {
+    clearConnectionsToWire(wireId);
+    state.wires = state.wires.filter((w) => w.id !== wireId);
+    selectedForBundle.delete(wireId);
+  }
+
   function dissolveNutIfTooSmall(nut) {
     if (nut.wireIds.length < 2) {
-      // clear any pigtail references to this nut
-      Object.keys(state.terminals).forEach((swId) => {
-        const termMap = state.terminals[swId];
-        Object.keys(termMap).forEach((key) => {
-          const conn = termMap[key];
-          if (conn && conn.type === "nut" && conn.id === nut.id) termMap[key] = null;
-        });
+      // a pigtail only exists to feed this splice — it can't survive without it
+      nut.wireIds.forEach((wireId) => {
+        const w = wireById(wireId);
+        if (w && w.isPigtail) deletePigtail(wireId);
       });
       state.nuts = state.nuts.filter((n) => n.id !== nut.id);
     }
@@ -265,8 +260,21 @@
   function removeWireFromNut(nutId, wireId) {
     const nut = nutById(nutId);
     if (!nut) return;
+    const wire = wireById(wireId);
     nut.wireIds = nut.wireIds.filter((id) => id !== wireId);
+    if (wire && wire.isPigtail) deletePigtail(wireId);
     dissolveNutIfTooSmall(nut);
+    saveState();
+    render();
+  }
+
+  function addPigtail(nutId, color) {
+    const nut = nutById(nutId);
+    if (!nut) return;
+    const gauge = nutDominantGauge(nut);
+    const wire = { id: uid(), cableId: null, color, gauge, isPigtail: true };
+    state.wires.push(wire);
+    nut.wireIds.push(wire.id);
     saveState();
     render();
   }
@@ -274,12 +282,9 @@
   function deleteNut(nutId) {
     const nut = nutById(nutId);
     if (!nut) return;
-    Object.keys(state.terminals).forEach((swId) => {
-      const termMap = state.terminals[swId];
-      Object.keys(termMap).forEach((key) => {
-        const conn = termMap[key];
-        if (conn && conn.type === "nut" && conn.id === nutId) termMap[key] = null;
-      });
+    nut.wireIds.forEach((wireId) => {
+      const w = wireById(wireId);
+      if (w && w.isPigtail) deletePigtail(wireId);
     });
     state.nuts = state.nuts.filter((n) => n.id !== nutId);
     saveState();
@@ -368,10 +373,10 @@
 
     const used = new Set();
     const pushNutStep = (nut) => {
-      const refs = terminalsReferencingNut(nut.id);
+      const pigtails = nut.wireIds.map(wireById).filter((w) => w && w.isPigtail);
       let desc = `Twist together ${escapeHtml(describeWireNutWires(nut))} and cap with a wire nut.`;
-      if (refs.length) {
-        desc += " This bundle also feeds a pigtail to: " + refs.map((r) => `Switch ${r.switchIdx + 1} (${r.label})`).join(", ") + ".";
+      if (pigtails.length) {
+        desc += ` Cut ${pigtails.length > 1 ? "pigtails" : "a pigtail"} of matching gauge from scrap wire and strip both ends before twisting ${pigtails.length > 1 ? "them" : "it"} in.`;
       }
       const warn = nutWarning(nut);
       if (warn) desc += ` Note: ${warn}`;
@@ -392,24 +397,16 @@
       def.terminals.forEach((t) => {
         const conn = state.terminals[sw.id]?.[t.key];
         if (!conn) return;
-        let sourceDesc;
-        if (conn.type === "wire") {
-          const w = wireById(conn.id);
-          if (!w) return;
-          sourceDesc = escapeHtml(wireFull(w));
-        } else {
-          const n = nutById(conn.id);
-          if (!n) return;
-          sourceDesc = `a pigtail from the "${escapeHtml(n.label)}" wire nut`;
-        }
+        const w = wireById(conn.id);
+        if (!w) return;
+        const sourceDesc = escapeHtml(wireFull(w));
         const screwDesc = t.screw === "green" ? "green ground screw" : t.screw === "black" ? "dark common screw" : "brass screw";
         steps.push({
           title: `Switch ${idx + 1}: ${t.label}`,
           desc: `Connect ${sourceDesc} to the ${t.label} (${screwDesc}) on switch ${idx + 1}.`,
           highlight: {
             terminals: [{ switchId: sw.id, key: t.key }],
-            wires: conn.type === "wire" ? [conn.id] : [],
-            nuts: conn.type === "nut" ? [conn.id] : [],
+            wires: [conn.id],
           },
         });
       });
@@ -462,14 +459,9 @@
 
   function connectionInfo(conn) {
     if (!conn) return { text: "Not connected", empty: true };
-    if (conn.type === "wire") {
-      const w = wireById(conn.id);
-      if (!w) return { text: "Not connected", empty: true };
-      return { text: escapeHtml(wireFull(w)), empty: false };
-    }
-    const n = nutById(conn.id);
-    if (!n) return { text: "Not connected", empty: true };
-    return { text: `Pigtail from "${escapeHtml(n.label)}"`, empty: false };
+    const w = wireById(conn.id);
+    if (!w) return { text: "Not connected", empty: true };
+    return { text: escapeHtml(wireFull(w)), empty: false };
   }
 
   function renderDiagram() {
@@ -573,10 +565,22 @@
           .map((id) => {
             const w = wireById(id);
             if (!w) return "";
+            let landedNote = "";
+            if (w.isPigtail) {
+              const usage = wireUsage(w.id);
+              if (usage.onTerminal) {
+                const sw = switchById(usage.onTerminal.switchId);
+                const swIdx = state.switches.findIndex((s) => s.id === usage.onTerminal.switchId);
+                const t = SWITCH_TYPES[sw.type].terminals.find((t) => t.key === usage.onTerminal.key);
+                landedNote = ` → Switch ${swIdx + 1} – ${t.label}`;
+              } else {
+                landedNote = " · not yet landed";
+              }
+            }
             return `
             <div class="wire-chip" data-wire-id="${w.id}">
               <span class="wire-color-dot c-${w.color}"></span>
-              <span class="w-label">${escapeHtml(wireDisplayLabel(w))}</span>
+              <span class="w-label">${escapeHtml(wireDisplayLabel(w))}<span class="w-meta">${landedNote}</span></span>
               <span class="chip-actions">
                 <button type="button" data-action="remove-from-nut" data-nut-id="${nut.id}" data-wire-id="${w.id}" title="Remove from this wire nut">✕</button>
               </span>
@@ -602,6 +606,15 @@
               <option value="">+ Add wire to this nut…</option>
               ${availableWires.map((w) => `<option value="${w.id}">${escapeHtml(wireFull(w))}</option>`).join("")}
             </select>
+          </div>
+          <div class="nut-pigtail-row">
+            <select data-role="pigtail-color" data-nut-id="${nut.id}">
+              <option value="black">Black</option>
+              <option value="white">White</option>
+              <option value="red">Red</option>
+              <option value="ground">Bare/Ground</option>
+            </select>
+            <button type="button" class="btn btn-ghost" data-action="add-pigtail" data-nut-id="${nut.id}">+ Add Pigtail</button>
           </div>
         </div>`;
       })
@@ -657,26 +670,22 @@
     const current = state.terminals[switchId]?.[key];
     const availableWires = state.wires.filter((w) => {
       const usage = wireUsage(w.id);
-      const isCurrent = current && current.type === "wire" && current.id === w.id;
-      return isCurrent || (!usage.inNut && !usage.onTerminal);
+      const isCurrent = current && current.id === w.id;
+      if (isCurrent) return true;
+      if (usage.onTerminal) return false;
+      if (usage.inNut && !w.isPigtail) return false; // regular conductors are used up once spliced
+      return true;
     });
 
     document.getElementById("terminalModalTitle").textContent = `Switch ${state.switches.indexOf(sw) + 1}: ${t.label}`;
     const body = document.getElementById("terminalModalBody");
     body.innerHTML = `
-      <p class="hint">Choose a wire to land directly on this screw, or a wire nut to run a pigtail from.</p>
+      <p class="hint">Choose a wire to land directly on this screw — including a pigtail already twisted into a wire nut.</p>
       <select id="terminalSelect">
         <option value="">— Not connected —</option>
-        <optgroup label="Wires">
-          ${availableWires
-            .map((w) => `<option value="wire:${w.id}" ${current && current.type === "wire" && current.id === w.id ? "selected" : ""}>${escapeHtml(wireFull(w))}</option>`)
-            .join("")}
-        </optgroup>
-        <optgroup label="Wire Nuts (pigtail)">
-          ${state.nuts
-            .map((n) => `<option value="nut:${n.id}" ${current && current.type === "nut" && current.id === n.id ? "selected" : ""}>${escapeHtml(n.label)}</option>`)
-            .join("")}
-        </optgroup>
+        ${availableWires
+          .map((w) => `<option value="wire:${w.id}" ${current && current.id === w.id ? "selected" : ""}>${escapeHtml(wireFull(w))}</option>`)
+          .join("")}
       </select>`;
     document.getElementById("terminalModal").classList.remove("hidden");
   }
@@ -738,12 +747,19 @@
     document.getElementById("nutsContainer").addEventListener("click", (e) => {
       const rm = e.target.closest('[data-action="remove-from-nut"]');
       const del = e.target.closest('[data-action="delete-nut"]');
+      const addPigtailBtn = e.target.closest('[data-action="add-pigtail"]');
       if (rm) {
         removeWireFromNut(rm.dataset.nutId, rm.dataset.wireId);
         return;
       }
       if (del) {
         if (confirm("Delete this wire nut? Its wires will return to the unassigned pool.")) deleteNut(del.dataset.nutId);
+        return;
+      }
+      if (addPigtailBtn) {
+        const nutId = addPigtailBtn.dataset.nutId;
+        const colorSelect = addPigtailBtn.closest(".nut-pigtail-row").querySelector('[data-role="pigtail-color"]');
+        addPigtail(nutId, colorSelect.value);
         return;
       }
     });
