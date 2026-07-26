@@ -29,6 +29,19 @@ chatbot-demo/
 ├── requirements.txt
 ├── .env                 # Your OpenAI API key (not committed)
 ├── chroma_db/           # Auto-generated vector database (not committed)
-└── static/
-    └── index.html       # Chat widget UI
+├── static/
+│   └── index.html       # Chat widget UI
+└── switchbox/            # Standalone switch box wiring walkthrough app (see below)
 ```
+
+## Switch Box Wiring Walkthrough
+
+A separate, self-contained tool for walking someone through wiring a light switch box. It's plain HTML/CSS/JS (no API key, no build step) served alongside the chatbot at `/switchbox/`, or you can open `switchbox/index.html` directly in a browser.
+
+Features:
+- 1-gang, 2-gang, or 3-gang box setup, with each switch configurable as single-pole or 3-way.
+- Wires limited to 12 AWG and 14 AWG, tagged by conductor color (black, white, red, bare/ground).
+- Select two or more unassigned wires and twist them into an editable wire nut — add, remove, rename, or delete the bundle at any time.
+- Click any switch terminal to land a wire directly on it or run a pigtail from a wire nut.
+- A live step-by-step walkthrough (with Prev/Next and a jump list) that regenerates from the current wiring, plus a print view for handing someone a paper copy.
+- State autosaves to the browser's local storage.

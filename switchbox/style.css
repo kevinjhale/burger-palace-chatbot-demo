@@ -1,0 +1,228 @@
+:root {
+  --bg: #f4f1ea;
+  --panel: #ffffff;
+  --ink: #2a2420;
+  --ink-soft: #6b6157;
+  --border: #ddd4c4;
+  --accent: #d9730d;
+  --accent-ink: #ffffff;
+  --danger: #c0392b;
+  --brass: #b8860b;
+  --green-screw: #2f7a3d;
+  --black-screw: #1f1f1f;
+  --wire-black: #1a1a1a;
+  --wire-white: #f7f3ea;
+  --wire-red: #c0392b;
+  --wire-ground: #8a5a2b;
+  --jacket-14: #f2efe4;
+  --jacket-12: #e8c34a;
+  --radius: 10px;
+  --shadow: 0 1px 3px rgba(0,0,0,0.08), 0 1px 2px rgba(0,0,0,0.06);
+}
+
+* { box-sizing: border-box; }
+
+body {
+  margin: 0;
+  font-family: -apple-system, BlinkMacSystemFont, "Segoe UI", Roboto, Helvetica, Arial, sans-serif;
+  background: var(--bg);
+  color: var(--ink);
+  line-height: 1.4;
+}
+
+h1, h2, h3 { margin: 0 0 8px; }
+h2 { font-size: 1.05rem; letter-spacing: 0.02em; text-transform: uppercase; color: var(--ink-soft); border-bottom: 2px solid var(--border); padding-bottom: 8px; margin-bottom: 14px; }
+h3 { font-size: 0.9rem; color: var(--ink-soft); }
+p.hint { color: var(--ink-soft); font-size: 0.85rem; margin: 0 0 12px; }
+
+.app-header {
+  background: var(--ink);
+  color: #fff;
+  padding: 14px 20px;
+  position: sticky;
+  top: 0;
+  z-index: 20;
+}
+.header-inner { max-width: 1400px; margin: 0 auto; display: flex; align-items: center; justify-content: space-between; }
+.app-header h1 { font-size: 1.15rem; color: #fff; }
+.header-actions { display: flex; gap: 8px; }
+
+.btn {
+  border: 1px solid var(--border);
+  background: var(--panel);
+  color: var(--ink);
+  padding: 7px 14px;
+  border-radius: 8px;
+  font-size: 0.85rem;
+  cursor: pointer;
+  font-weight: 600;
+  transition: transform 0.05s ease, background 0.15s ease;
+}
+.btn:hover { background: #f0ece2; }
+.btn:active { transform: scale(0.97); }
+.btn:disabled { opacity: 0.45; cursor: not-allowed; }
+.btn-primary { background: var(--accent); border-color: var(--accent); color: var(--accent-ink); }
+.btn-primary:hover { background: #c2660a; }
+.btn-secondary { background: #2a2420; border-color: #2a2420; color: #fff; }
+.btn-secondary:hover { background: #3a322c; }
+.btn-ghost { background: transparent; border-color: rgba(255,255,255,0.35); color: inherit; }
+.header-actions .btn-ghost { color: #fff; }
+.setup-panel .btn-ghost, .steps-nav .btn-ghost { border-color: var(--border); color: var(--ink); }
+.btn-danger { color: var(--danger); border-color: var(--danger); }
+
+.layout {
+  max-width: 1400px;
+  margin: 20px auto;
+  padding: 0 20px 60px;
+  display: grid;
+  grid-template-columns: 300px 1fr 1fr;
+  grid-template-rows: auto auto;
+  gap: 18px;
+}
+.setup-panel { grid-column: 1; grid-row: 1; }
+.diagram-panel { grid-column: 2 / 4; grid-row: 1; }
+.wires-panel { grid-column: 1 / 3; grid-row: 2; }
+.steps-panel { grid-column: 3; grid-row: 2; }
+
+@media (max-width: 1050px) {
+  .layout { grid-template-columns: 1fr; }
+  .setup-panel, .diagram-panel, .wires-panel, .steps-panel { grid-column: 1; grid-row: auto; }
+}
+
+.panel {
+  background: var(--panel);
+  border: 1px solid var(--border);
+  border-radius: var(--radius);
+  padding: 16px 18px;
+  box-shadow: var(--shadow);
+}
+
+/* Setup panel */
+.field-row { margin-bottom: 14px; }
+.field-row label { display: block; font-size: 0.8rem; color: var(--ink-soft); margin-bottom: 6px; font-weight: 600; }
+.segmented { display: flex; border: 1px solid var(--border); border-radius: 8px; overflow: hidden; }
+.seg-btn { flex: 1; padding: 8px 4px; background: var(--panel); border: none; border-right: 1px solid var(--border); cursor: pointer; font-size: 0.85rem; font-weight: 600; color: var(--ink-soft); }
+.seg-btn:last-child { border-right: none; }
+.seg-btn.active { background: var(--accent); color: #fff; }
+
+.switch-type-row { display: flex; align-items: center; justify-content: space-between; gap: 8px; padding: 8px 0; border-top: 1px solid var(--border); }
+.switch-type-row:first-child { border-top: none; }
+.switch-type-row label { font-size: 0.85rem; font-weight: 600; }
+.switch-type-row select { padding: 5px 6px; border-radius: 6px; border: 1px solid var(--border); font-size: 0.82rem; }
+
+/* Diagram */
+.box-diagram { display: flex; gap: 14px; flex-wrap: wrap; }
+.gang-device {
+  flex: 1;
+  min-width: 220px;
+  border: 2px solid var(--ink);
+  border-radius: 8px;
+  padding: 10px;
+  background: #fbfaf6;
+}
+.gang-device-head { display: flex; justify-content: space-between; align-items: baseline; margin-bottom: 8px; }
+.gang-device-head strong { font-size: 0.9rem; }
+.gang-device-head span { font-size: 0.72rem; color: var(--ink-soft); text-transform: uppercase; letter-spacing: 0.04em; }
+
+.terminal-row {
+  display: flex;
+  align-items: center;
+  gap: 8px;
+  padding: 6px 4px;
+  border-radius: 6px;
+  cursor: pointer;
+  border: 1px dashed transparent;
+}
+.terminal-row:hover { background: #f0ece2; border-color: var(--border); }
+.terminal-row.highlight { background: #fdf0dc; border-color: var(--accent); }
+.screw-dot { width: 16px; height: 16px; border-radius: 50%; flex-shrink: 0; border: 2px solid rgba(0,0,0,0.25); }
+.screw-brass { background: var(--brass); }
+.screw-green { background: var(--green-screw); }
+.screw-black { background: var(--black-screw); }
+.terminal-info { flex: 1; min-width: 0; }
+.terminal-info .t-name { font-size: 0.78rem; font-weight: 700; }
+.terminal-info .t-conn { font-size: 0.75rem; color: var(--ink-soft); overflow: hidden; text-overflow: ellipsis; white-space: nowrap; }
+.terminal-info .t-conn.empty { font-style: italic; }
+
+/* Wires panel */
+.wire-form { display: flex; flex-wrap: wrap; gap: 8px; margin-bottom: 16px; }
+.wire-form input[type=text] { flex: 1; min-width: 160px; padding: 7px 10px; border: 1px solid var(--border); border-radius: 8px; font-size: 0.85rem; }
+.wire-form select { padding: 7px 8px; border: 1px solid var(--border); border-radius: 8px; font-size: 0.85rem; }
+
+.pool-head { display: flex; align-items: center; justify-content: space-between; margin-bottom: 8px; flex-wrap: wrap; gap: 8px; }
+.wire-pool-list { display: flex; flex-wrap: wrap; gap: 8px; margin-bottom: 18px; min-height: 40px; }
+
+.wire-chip {
+  display: flex;
+  align-items: center;
+  gap: 8px;
+  border: 2px solid var(--border);
+  border-radius: 20px;
+  padding: 5px 10px 5px 6px;
+  background: #fff;
+  cursor: pointer;
+  font-size: 0.8rem;
+  user-select: none;
+}
+.wire-chip.selected { border-color: var(--accent); background: #fdf0dc; }
+.wire-chip.highlight { box-shadow: 0 0 0 2px var(--accent); }
+.wire-jacket { width: 14px; height: 14px; border-radius: 50%; border: 2px solid rgba(0,0,0,0.4); flex-shrink: 0; }
+.wire-jacket.g14 { background: var(--jacket-14); }
+.wire-jacket.g12 { background: var(--jacket-12); }
+.wire-color-dot { width: 10px; height: 10px; border-radius: 50%; flex-shrink: 0; border: 1px solid rgba(0,0,0,0.35); }
+.c-black { background: var(--wire-black); }
+.c-white { background: var(--wire-white); }
+.c-red { background: var(--wire-red); }
+.c-ground { background: var(--wire-ground); }
+.wire-chip .w-label { font-weight: 600; }
+.wire-chip .w-meta { color: var(--ink-soft); font-size: 0.7rem; }
+.chip-actions { display: flex; gap: 4px; margin-left: 4px; }
+.chip-actions button { border: none; background: transparent; cursor: pointer; font-size: 0.8rem; color: var(--ink-soft); padding: 0 2px; }
+.chip-actions button:hover { color: var(--danger); }
+
+.nuts-list h3 { margin-bottom: 8px; }
+#nutsContainer { display: flex; flex-direction: column; gap: 12px; }
+.nut-card { border: 1px solid var(--border); border-radius: 10px; padding: 10px 12px; background: #faf8f2; }
+.nut-card.highlight { border-color: var(--accent); box-shadow: 0 0 0 2px var(--accent); }
+.nut-card-head { display: flex; align-items: center; gap: 10px; margin-bottom: 8px; }
+.nut-cap { width: 22px; height: 26px; border-radius: 40% 40% 50% 50%; border: 2px solid rgba(0,0,0,0.35); flex-shrink: 0; }
+.nut-cap.size-yellow { background: #f0d33c; }
+.nut-cap.size-orange { background: #e08a2e; }
+.nut-cap.size-red { background: #c0392b; }
+.nut-title-input { border: none; background: transparent; font-weight: 700; font-size: 0.88rem; flex: 1; min-width: 80px; }
+.nut-title-input:focus { outline: 1px solid var(--border); border-radius: 4px; }
+.nut-delete { border: none; background: transparent; cursor: pointer; color: var(--ink-soft); font-size: 0.9rem; }
+.nut-delete:hover { color: var(--danger); }
+.nut-wires { display: flex; flex-wrap: wrap; gap: 6px; margin-bottom: 8px; }
+.nut-add-row { display: flex; gap: 6px; align-items: center; }
+.nut-add-row select { flex: 1; padding: 5px; border-radius: 6px; border: 1px solid var(--border); font-size: 0.78rem; }
+.nut-add-row button { font-size: 0.75rem; padding: 5px 8px; }
+.nut-warning { font-size: 0.73rem; color: #8a5a2b; margin-top: 4px; }
+.empty-note { color: var(--ink-soft); font-size: 0.82rem; font-style: italic; }
+
+/* Steps panel */
+.steps-nav { display: flex; align-items: center; justify-content: space-between; margin-bottom: 12px; }
+.step-progress { font-size: 0.8rem; color: var(--ink-soft); font-weight: 600; }
+.step-card { background: #fdf6ea; border: 1px solid var(--border); border-radius: 10px; padding: 14px; margin-bottom: 16px; }
+.step-card h4 { margin: 0 0 6px; font-size: 1rem; }
+.step-card p { margin: 0; font-size: 0.88rem; }
+.step-card .step-num { display: inline-block; background: var(--accent); color: #fff; font-size: 0.7rem; font-weight: 700; padding: 2px 8px; border-radius: 12px; margin-bottom: 8px; }
+
+.all-steps-list { padding-left: 20px; margin: 0; font-size: 0.8rem; color: var(--ink-soft); }
+.all-steps-list li { margin-bottom: 6px; cursor: pointer; }
+.all-steps-list li.active { color: var(--ink); font-weight: 700; }
+.all-steps-list li:hover { text-decoration: underline; }
+
+/* Modal */
+.modal { position: fixed; inset: 0; background: rgba(0,0,0,0.45); display: flex; align-items: center; justify-content: center; z-index: 50; }
+.modal.hidden { display: none; }
+.modal-box { background: #fff; border-radius: 12px; padding: 20px; width: 340px; max-width: 90vw; box-shadow: 0 10px 30px rgba(0,0,0,0.3); }
+.modal-box select { width: 100%; padding: 8px; border-radius: 8px; border: 1px solid var(--border); margin-top: 10px; }
+.modal-actions { display: flex; justify-content: space-between; margin-top: 16px; }
+
+@media print {
+  .app-header, .setup-panel, .diagram-panel, .wires-panel, .steps-nav, #resetBtn, #printBtn { display: none !important; }
+  .layout { display: block; }
+  .all-steps-list { display: block !important; font-size: 1rem; color: #000; }
+  .step-card { display: none; }
+}

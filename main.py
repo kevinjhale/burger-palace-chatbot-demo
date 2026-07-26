@@ -8,6 +8,7 @@ from rank_bm25 import BM25Okapi
 from fastapi import FastAPI, HTTPException
 from fastapi.responses import HTMLResponse
 from fastapi.middleware.cors import CORSMiddleware
+from fastapi.staticfiles import StaticFiles
 from pydantic import BaseModel
 from dotenv import load_dotenv
 
@@ -15,6 +16,9 @@ load_dotenv()
 
 app = FastAPI()
 app.add_middleware(CORSMiddleware, allow_origins=["*"], allow_methods=["*"], allow_headers=["*"])
+
+# Standalone switch box wiring walkthrough app — static, no API key required.
+app.mount("/switchbox", StaticFiles(directory="switchbox", html=True), name="switchbox")
 
 claude = anthropic.Anthropic(api_key=os.getenv("ANTHROPIC_API_KEY"))
 

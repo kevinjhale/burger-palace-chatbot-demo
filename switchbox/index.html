@@ -1,0 +1,103 @@
+<!doctype html>
+<html lang="en">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1.0">
+<title>Switch Box Wiring Walkthrough</title>
+<link rel="icon" href="data:image/svg+xml,<svg xmlns=%22http://www.w3.org/2000/svg%22 viewBox=%220 0 100 100%22><text y=%22.9em%22 font-size=%2290%22>%E2%9A%A1</text></svg>">
+<link rel="stylesheet" href="style.css">
+</head>
+<body>
+<header class="app-header">
+  <div class="header-inner">
+    <h1>⚡ Switch Box Wiring Walkthrough</h1>
+    <div class="header-actions">
+      <button id="printBtn" class="btn btn-ghost" title="Print the current step-by-step instructions">Print Steps</button>
+      <button id="resetBtn" class="btn btn-ghost btn-danger" title="Clear everything and start over">Reset</button>
+    </div>
+  </div>
+</header>
+
+<main class="layout">
+
+  <!-- Box setup -->
+  <section class="panel setup-panel">
+    <h2>1. Box Setup</h2>
+    <div class="field-row">
+      <label>Gang size</label>
+      <div class="segmented" id="gangSelect">
+        <button data-gang="1" class="seg-btn">1-Gang</button>
+        <button data-gang="2" class="seg-btn">2-Gang</button>
+        <button data-gang="3" class="seg-btn">3-Gang</button>
+      </div>
+    </div>
+    <div id="switchTypeList" class="switch-type-list"></div>
+  </section>
+
+  <!-- Diagram -->
+  <section class="panel diagram-panel">
+    <h2>2. Box Diagram</h2>
+    <p class="hint">Terminals show what's currently landed on each screw. Click a terminal to connect a wire or a wire-nut pigtail.</p>
+    <div id="boxDiagram" class="box-diagram"></div>
+  </section>
+
+  <!-- Wires -->
+  <section class="panel wires-panel">
+    <h2>3. Wires</h2>
+    <form id="wireForm" class="wire-form">
+      <input type="text" id="wireLabel" placeholder="Label (e.g. Line from panel)" required maxlength="40">
+      <select id="wireGauge">
+        <option value="14">14 AWG</option>
+        <option value="12">12 AWG</option>
+      </select>
+      <select id="wireColor">
+        <option value="black">Black (Hot)</option>
+        <option value="white">White (Neutral)</option>
+        <option value="red">Red (Traveler/Hot)</option>
+        <option value="ground">Bare/Green (Ground)</option>
+      </select>
+      <button type="submit" class="btn btn-primary">+ Add Wire</button>
+    </form>
+
+    <div class="wires-pool">
+      <div class="pool-head">
+        <h3>Unassigned Wires</h3>
+        <button id="bundleBtn" class="btn btn-secondary" disabled>🌀 Twist Selected Into Wire Nut</button>
+      </div>
+      <div id="wirePool" class="wire-pool-list"></div>
+    </div>
+
+    <div class="nuts-list">
+      <h3>Wire Nuts</h3>
+      <div id="nutsContainer"></div>
+    </div>
+  </section>
+
+  <!-- Steps -->
+  <section class="panel steps-panel">
+    <h2>4. Step-by-Step Walkthrough</h2>
+    <div id="stepsNav" class="steps-nav">
+      <button id="prevStep" class="btn btn-ghost">&larr; Prev</button>
+      <div id="stepProgress" class="step-progress"></div>
+      <button id="nextStep" class="btn btn-ghost">Next &rarr;</button>
+    </div>
+    <div id="stepCard" class="step-card"></div>
+    <ol id="allStepsList" class="all-steps-list"></ol>
+  </section>
+
+</main>
+
+<div id="terminalModal" class="modal hidden">
+  <div class="modal-box">
+    <h3 id="terminalModalTitle">Connect Terminal</h3>
+    <div id="terminalModalBody"></div>
+    <div class="modal-actions">
+      <button id="terminalClearBtn" class="btn btn-ghost btn-danger">Disconnect</button>
+      <button id="terminalCloseBtn" class="btn btn-secondary">Close</button>
+    </div>
+  </div>
+</div>
+
+<script src="app.js"></script>
+</body>
+</html>
