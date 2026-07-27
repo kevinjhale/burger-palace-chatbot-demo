@@ -41,6 +41,7 @@
     return {
       gangs: 1,
       viewMode: "visual",
+      layers: { black: true, white: true, red: true, ground: true },
       switches: [{ id: swId, type: "single-pole" }],
       cables: [],
       wires: [],
@@ -60,6 +61,7 @@
       if (raw) {
         const parsed = JSON.parse(raw);
         if (!parsed.viewMode) parsed.viewMode = "visual";
+        if (!parsed.layers) parsed.layers = { black: true, white: true, red: true, ground: true };
         return parsed;
       }
     } catch (e) {
@@ -144,6 +146,13 @@
   function setViewMode(mode) {
     if (mode !== "visual" && mode !== "schematic") return;
     state.viewMode = mode;
+    saveState();
+    render();
+  }
+
+  function toggleLayer(color) {
+    if (!(color in state.layers)) return;
+    state.layers[color] = !state.layers[color];
     saveState();
     render();
   }
@@ -490,6 +499,11 @@
     const isVisual = state.viewMode === "visual";
     visualEl.classList.toggle("hidden", !isVisual);
     schematicEl.classList.toggle("hidden", isVisual);
+    document.getElementById("layerToggle").classList.toggle("hidden", !isVisual);
+
+    document.querySelectorAll("#layerToggle .layer-chip").forEach((btn) => {
+      btn.classList.toggle("off", !state.layers[btn.dataset.layer]);
+    });
 
     if (isVisual) renderVisualDiagram();
     else renderSchematicDiagram();
@@ -527,13 +541,14 @@
   }
 
   // ---------- visual box diagram ----------
-  const VIZ = { gangW: 132, boxTop: 70, boxH: 224, wireStep: 20, stubH: 30, cableSlot: 118, sidePad: 40 };
+  const VIZ = { gangW: 132, boxTop: 70, boxH: 250, wireStep: 20, stubH: 30, cableSlot: 118, nutSlot: 56, sidePad: 40, nutHeadroom: 54 };
 
   function vizGeometry() {
     const gangs = state.gangs;
     const boxW = gangs * VIZ.gangW;
     const cablesW = state.cables.length > 0 ? state.cables.length * VIZ.cableSlot : 0;
-    const contentW = Math.max(boxW, cablesW);
+    const nutsW = state.nuts.length > 0 ? state.nuts.length * VIZ.nutSlot : 0;
+    const contentW = Math.max(boxW, cablesW, nutsW);
     const boxX = VIZ.sidePad + (contentW - boxW) / 2;
     const boxY = VIZ.boxTop;
     const boxH = VIZ.boxH;
@@ -555,7 +570,7 @@
     const def = SWITCH_TYPES[sw.type];
     const nonGround = def.terminals.filter((t) => t.key !== "ground");
     const ground = def.terminals.find((t) => t.key === "ground");
-    const top = geo.boxY + 50;
+    const top = geo.boxY + VIZ.nutHeadroom + 30;
     const bottom = geo.boxBottom - 70;
     const positions = {};
     nonGround.forEach((t, i) => {
@@ -578,7 +593,7 @@
     state.nuts.forEach((nut, i) => {
       const n = state.nuts.length;
       const x = geo.contentX + (geo.contentW * (i + 1)) / (n + 1);
-      nutPos[nut.id] = { x, y: geo.boxY + 24 };
+      nutPos[nut.id] = { x, y: geo.boxY + 18 };
     });
 
     const wirePos = {};
@@ -619,8 +634,8 @@
       const slotX = geo.boxX + i * VIZ.gangW;
       const strapX = slotX + 22;
       const strapW = VIZ.gangW - 44;
-      const strapY = geo.boxY + 30;
-      const strapH = geo.boxH - 66;
+      const strapY = geo.boxY + VIZ.nutHeadroom;
+      const strapH = geo.boxH - VIZ.nutHeadroom - 36;
       parts.push(
         `<rect class="viz-strap" x="${strapX}" y="${strapY}" width="${strapW}" height="${strapH}" rx="5"></rect>`
       );
@@ -743,7 +758,7 @@
         const selected = selectedForBundle.has(w.id);
         const label = wireDisplayLabel(w);
         parts.push(`
-          <g class="viz-wire-endpoint ${inUse ? "used" : "free"} ${selected ? "selected" : ""}" data-wire-id="${w.id}">
+          <g class="viz-wire-endpoint c-${w.color} ${inUse ? "used" : "free"} ${selected ? "selected" : ""}" data-wire-id="${w.id}">
             <circle class="viz-hit" cx="${pos.x}" cy="${pos.y}" r="13"></circle>
             <circle class="viz-endpoint-ring" cx="${pos.x}" cy="${pos.y}" r="9"></circle>
             <circle class="c-${w.color}" cx="${pos.x}" cy="${pos.y}" r="6"></circle>
@@ -752,7 +767,11 @@
       });
 
     const displayW = Math.round(Math.min(620, Math.max(300, geo.width * 1.7)));
-    const svg = `<svg viewBox="0 0 ${geo.width} ${geo.height}" style="max-width:${displayW}px" preserveAspectRatio="xMidYMin meet" role="img" aria-label="Visual switch box diagram">${parts.join("")}</svg>`;
+    const layerClasses = Object.entries(state.layers)
+      .filter(([, visible]) => !visible)
+      .map(([color]) => `layer-${color}-off`)
+      .join(" ");
+    const svg = `<svg class="${layerClasses}" viewBox="0 0 ${geo.width} ${geo.height}" style="max-width:${displayW}px" preserveAspectRatio="xMidYMin meet" role="img" aria-label="Visual switch box diagram">${parts.join("")}</svg>`;
     document.getElementById("boxDiagramVisual").innerHTML = svg;
   }
 
@@ -984,6 +1003,19 @@
       addCable(label, type);
       document.getElementById("cableLabel").value = "";
       document.getElementById("cableLabel").focus();
+    });
+
+    document.getElementById("quickLabels").addEventListener("click", (e) => {
+      const btn = e.target.closest("[data-quick-label]");
+      if (!btn) return;
+      const input = document.getElementById("cableLabel");
+      input.value = btn.dataset.quickLabel;
+      input.focus();
+    });
+
+    document.getElementById("layerToggle").addEventListener("click", (e) => {
+      const btn = e.target.closest(".layer-chip");
+      if (btn) toggleLayer(btn.dataset.layer);
     });
 
     document.getElementById("bundleBtn").addEventListener("click", bundleSelected);

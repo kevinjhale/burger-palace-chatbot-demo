@@ -44,6 +44,13 @@
       </div>
     </div>
     <p class="hint" id="diagramHint">Wires sticking out of the box are unconnected. Click one to select it for a wire nut, or click a terminal screw to land a wire on it.</p>
+    <div class="layer-toggle" id="layerToggle">
+      <span class="layer-toggle-label">Show:</span>
+      <button type="button" class="layer-chip" data-layer="black"><span class="layer-dot c-black"></span>Black</button>
+      <button type="button" class="layer-chip" data-layer="white"><span class="layer-dot c-white"></span>White</button>
+      <button type="button" class="layer-chip" data-layer="red"><span class="layer-dot c-red"></span>Red</button>
+      <button type="button" class="layer-chip" data-layer="ground"><span class="layer-dot c-ground"></span>Ground</button>
+    </div>
     <div id="boxDiagramVisual" class="box-diagram-visual"></div>
     <div id="boxDiagram" class="box-diagram"></div>
   </section>
@@ -60,6 +67,16 @@
       </select>
       <button type="submit" class="btn btn-primary">+ Pull Cable</button>
     </form>
+    <div class="quick-labels" id="quickLabels">
+      <span class="quick-labels-label">Quick names:</span>
+      <button type="button" class="chip-btn" data-quick-label="Power In">Power In</button>
+      <button type="button" class="chip-btn" data-quick-label="Power Out">Power Out</button>
+      <button type="button" class="chip-btn" data-quick-label="Lights">Lights</button>
+      <button type="button" class="chip-btn" data-quick-label="Cans">Cans</button>
+      <button type="button" class="chip-btn" data-quick-label="Fans">Fans</button>
+      <button type="button" class="chip-btn" data-quick-label="Outlets">Outlets</button>
+      <button type="button" class="chip-btn" data-quick-label="Travelers">Travelers</button>
+    </div>
 
     <div class="wires-pool">
       <div class="pool-head">

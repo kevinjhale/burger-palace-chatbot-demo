@@ -217,6 +217,25 @@ p.hint { color: var(--ink-soft); font-size: 0.85rem; margin: 0 0 12px; }
 .segmented-sm { max-width: 220px; }
 .segmented-sm .seg-btn { padding: 6px 10px; font-size: 0.78rem; }
 
+.layer-toggle { display: flex; align-items: center; gap: 6px; flex-wrap: wrap; margin-bottom: 12px; }
+.layer-toggle-label { font-size: 0.75rem; color: var(--ink-soft); font-weight: 600; margin-right: 2px; }
+.layer-chip {
+  display: inline-flex;
+  align-items: center;
+  gap: 5px;
+  border: 1px solid var(--border);
+  background: var(--panel);
+  color: var(--ink);
+  padding: 4px 10px 4px 8px;
+  border-radius: 20px;
+  font-size: 0.75rem;
+  font-weight: 600;
+  cursor: pointer;
+}
+.layer-chip .layer-dot { width: 9px; height: 9px; border-radius: 50%; border: 1px solid rgba(0,0,0,0.35); }
+.layer-chip.off { opacity: 0.45; background: transparent; }
+.layer-chip.off .layer-dot { opacity: 0.5; }
+
 /* Visual box diagram */
 .box-diagram-visual { overflow-x: auto; text-align: center; }
 .box-diagram-visual svg { width: 100%; height: auto; display: inline-block; }
@@ -283,10 +302,31 @@ p.hint { color: var(--ink-soft); font-size: 0.85rem; margin: 0 0 12px; }
   30% { box-shadow: 0 0 0 3px var(--accent); }
 }
 
+/* Layer visibility — hides every wire element (strand, endpoint, dangling tip)
+   carrying that color's class, wherever it appears in the diagram. */
+svg.layer-black-off .c-black { display: none; }
+svg.layer-white-off .c-white { display: none; }
+svg.layer-red-off .c-red { display: none; }
+svg.layer-ground-off .c-ground { display: none; }
+
 /* Wires panel */
-.wire-form { display: flex; flex-wrap: wrap; gap: 8px; margin-bottom: 16px; }
+.wire-form { display: flex; flex-wrap: wrap; gap: 8px; margin-bottom: 10px; }
 .wire-form input[type=text] { flex: 1; min-width: 160px; padding: 7px 10px; border: 1px solid var(--border); border-radius: 8px; font-size: 0.85rem; }
 .wire-form select { padding: 7px 8px; border: 1px solid var(--border); border-radius: 8px; font-size: 0.85rem; }
+
+.quick-labels { display: flex; flex-wrap: wrap; align-items: center; gap: 6px; margin-bottom: 16px; }
+.quick-labels-label { font-size: 0.75rem; color: var(--ink-soft); font-weight: 600; margin-right: 2px; }
+.chip-btn {
+  border: 1px dashed var(--border);
+  background: transparent;
+  color: var(--ink-soft);
+  padding: 4px 10px;
+  border-radius: 14px;
+  font-size: 0.75rem;
+  font-weight: 600;
+  cursor: pointer;
+}
+.chip-btn:hover { border-style: solid; border-color: var(--accent); color: var(--accent); }
 
 .pool-head { display: flex; align-items: center; justify-content: space-between; margin-bottom: 8px; flex-wrap: wrap; gap: 8px; }
 .cables-list { display: flex; flex-direction: column; gap: 12px; margin-bottom: 18px; }
