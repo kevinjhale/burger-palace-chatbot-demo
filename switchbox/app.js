@@ -541,27 +541,30 @@
   }
 
   // ---------- visual box diagram ----------
-  const VIZ = { gangW: 132, boxTop: 70, boxH: 250, wireStep: 20, stubH: 30, cableSlot: 118, nutSlot: 56, sidePad: 40, nutHeadroom: 54 };
+  const VIZ = { gangW: 132, boxTop: 70, boxH: 250, wireStep: 20, stubH: 30, cableSlot: 92, nutSlot: 40, sidePad: 40, nutHeadroom: 54 };
 
   function vizGeometry() {
     const gangs = state.gangs;
-    const boxW = gangs * VIZ.gangW;
-    const cablesW = state.cables.length > 0 ? state.cables.length * VIZ.cableSlot : 0;
-    const nutsW = state.nuts.length > 0 ? state.nuts.length * VIZ.nutSlot : 0;
-    const contentW = Math.max(boxW, cablesW, nutsW);
-    const boxX = VIZ.sidePad + (contentW - boxW) / 2;
+    const devicesW = gangs * VIZ.gangW;
+    const cablesW = state.cables.length > 0 ? state.cables.length * VIZ.cableSlot + 40 : 0;
+    const nutsW = state.nuts.length > 0 ? state.nuts.length * VIZ.nutSlot + 40 : 0;
+    // the box itself grows to fit whatever needs to sit inside it — cables, nuts,
+    // and switches never render outside the box's own outline
+    const boxW = Math.max(devicesW, cablesW, nutsW);
+    const boxX = VIZ.sidePad;
+    const devicesX = boxX + (boxW - devicesW) / 2;
     const boxY = VIZ.boxTop;
     const boxH = VIZ.boxH;
     const boxBottom = boxY + boxH;
     return {
       boxX,
       boxW,
+      devicesX,
+      devicesW,
       boxY,
       boxH,
       boxBottom,
-      contentX: VIZ.sidePad,
-      contentW,
-      width: VIZ.sidePad * 2 + contentW,
+      width: VIZ.sidePad * 2 + boxW,
       height: boxBottom + 78,
     };
   }
@@ -585,29 +588,53 @@
     const geo = vizGeometry();
     const terminalPos = {};
     state.switches.forEach((sw, i) => {
-      const slotX = geo.boxX + i * VIZ.gangW;
+      const slotX = geo.devicesX + i * VIZ.gangW;
       terminalPos[sw.id] = vizTerminalPositions(sw, slotX, geo);
-    });
-
-    const nutPos = {};
-    state.nuts.forEach((nut, i) => {
-      const n = state.nuts.length;
-      const x = geo.contentX + (geo.contentW * (i + 1)) / (n + 1);
-      nutPos[nut.id] = { x, y: geo.boxY + 18 };
     });
 
     const wirePos = {};
     const cableStubs = [];
-    const cableGap = geo.contentW / (state.cables.length + 1);
+    const cableGap = geo.boxW / (state.cables.length + 1);
     state.cables.forEach((cable, ci) => {
-      const stubX = geo.contentX + cableGap * (ci + 1);
+      const stubX = geo.boxX + cableGap * (ci + 1);
       const conductors = state.wires.filter((w) => w.cableId === cable.id);
       conductors.forEach((w, wi) => {
-        const spread = (wi - (conductors.length - 1) / 2) * 17;
+        const spread = (wi - (conductors.length - 1) / 2) * 15;
         wirePos[w.id] = { x: stubX + spread, y: geo.boxBottom - 46 - wi * VIZ.wireStep, stubX, stubY: geo.boxBottom };
       });
       cableStubs.push({ cable, x: stubX });
     });
+
+    // place each wire nut near the horizontal center of its own member wires, so its
+    // lines stay short instead of zig-zagging across the whole box; then de-overlap
+    const minX = geo.boxX + 24;
+    const maxX = geo.boxX + geo.boxW - 24;
+    const rawNutX = state.nuts.map((nut, i) => {
+      const memberXs = nut.wireIds.map((id) => wirePos[id]?.x).filter((x) => x !== undefined);
+      let x;
+      if (memberXs.length) {
+        x = memberXs.reduce((a, b) => a + b, 0) / memberXs.length;
+      } else {
+        const n = state.nuts.length;
+        x = geo.boxX + (geo.boxW * (i + 1)) / (n + 1);
+      }
+      return { id: nut.id, x: Math.min(Math.max(x, minX), maxX) };
+    });
+    rawNutX.sort((a, b) => a.x - b.x);
+    const minGap = 32;
+    for (let i = 1; i < rawNutX.length; i++) {
+      if (rawNutX[i].x - rawNutX[i - 1].x < minGap) rawNutX[i].x = rawNutX[i - 1].x + minGap;
+    }
+    if (rawNutX.length && rawNutX[rawNutX.length - 1].x > maxX) {
+      const shift = rawNutX[rawNutX.length - 1].x - maxX;
+      rawNutX.forEach((n) => (n.x -= shift));
+    }
+    if (rawNutX.length && rawNutX[0].x < minX) {
+      const shift = minX - rawNutX[0].x;
+      rawNutX.forEach((n) => (n.x += shift));
+    }
+    const nutPos = {};
+    rawNutX.forEach(({ id, x }) => (nutPos[id] = { x, y: geo.boxY + 18 }));
 
     return { geo, terminalPos, nutPos, wirePos, cableStubs };
   }
@@ -631,7 +658,7 @@
 
     // device straps drawn first (background layer) so wires can visibly cross over them
     state.switches.forEach((sw, i) => {
-      const slotX = geo.boxX + i * VIZ.gangW;
+      const slotX = geo.devicesX + i * VIZ.gangW;
       const strapX = slotX + 22;
       const strapW = VIZ.gangW - 44;
       const strapY = geo.boxY + VIZ.nutHeadroom;
