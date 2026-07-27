@@ -27,6 +27,9 @@
   --device-bg: #f8faf9;
   --modal-bg: #ffffff;
   --header-bg: #10151a;
+  --wall-bg: #e4e1d6;
+  --wall-seam: rgba(0,0,0,0.06);
+  --strap-bg: #efece2;
 }
 
 @media (prefers-color-scheme: dark) {
@@ -43,6 +46,9 @@
     --tint: #1e2b3a;
     --device-bg: #1a2023;
     --modal-bg: #1f2528;
+    --wall-bg: #23292c;
+    --wall-seam: rgba(255,255,255,0.05);
+    --strap-bg: #2b3134;
   }
 }
 :root[data-theme="dark"] {
@@ -58,6 +64,9 @@
   --tint: #1e2b3a;
   --device-bg: #1a2023;
   --modal-bg: #1f2528;
+  --wall-bg: #23292c;
+  --wall-seam: rgba(255,255,255,0.05);
+  --strap-bg: #2b3134;
 }
 :root[data-theme="light"] {
   --bg: #eef1ef;
@@ -72,6 +81,9 @@
   --tint: #e7edf6;
   --device-bg: #f8faf9;
   --modal-bg: #ffffff;
+  --wall-bg: #e4e1d6;
+  --wall-seam: rgba(0,0,0,0.06);
+  --strap-bg: #efece2;
 }
 
 * { box-sizing: border-box; }
@@ -197,6 +209,79 @@ p.hint { color: var(--ink-soft); font-size: 0.85rem; margin: 0 0 12px; }
 .terminal-info .t-name { font-size: 0.78rem; font-weight: 700; }
 .terminal-info .t-conn { font-size: 0.75rem; color: var(--ink-soft); overflow: hidden; text-overflow: ellipsis; white-space: nowrap; }
 .terminal-info .t-conn.empty { font-style: italic; }
+
+.hidden { display: none !important; }
+
+.diagram-head { display: flex; align-items: center; justify-content: space-between; border-bottom: 2px solid var(--border); padding-bottom: 8px; margin-bottom: 14px; gap: 12px; flex-wrap: wrap; }
+.diagram-h2 { border: none; padding: 0; margin: 0; }
+.segmented-sm { max-width: 220px; }
+.segmented-sm .seg-btn { padding: 6px 10px; font-size: 0.78rem; }
+
+/* Visual box diagram */
+.box-diagram-visual { overflow-x: auto; text-align: center; }
+.box-diagram-visual svg { width: 100%; height: auto; display: inline-block; }
+
+.viz-wall { fill: var(--wall-bg); }
+.viz-box { fill: var(--strap-bg); stroke: var(--ink); stroke-width: 2; }
+.viz-box-lip { fill: none; stroke: var(--border); stroke-width: 1; }
+.viz-strap { fill: var(--device-bg); stroke: var(--ink-soft); stroke-width: 1.5; }
+.viz-toggle { fill: var(--ink); opacity: 0.82; }
+.viz-mount-screw { fill: none; stroke: var(--ink-soft); stroke-width: 1.5; }
+.viz-device-label { font-family: var(--font-label); font-size: 9px; letter-spacing: 0.03em; fill: var(--ink-soft); text-transform: uppercase; }
+
+.box-diagram-visual .screw-brass { fill: var(--brass); }
+.box-diagram-visual .screw-green { fill: var(--green-screw); }
+.box-diagram-visual .screw-black { fill: var(--black-screw); }
+.viz-screw-slot { stroke: rgba(0,0,0,0.45); stroke-width: 1.2; }
+.viz-hit { fill: transparent; }
+.viz-terminal { cursor: pointer; }
+.viz-terminal:hover circle:nth-of-type(2) { stroke: var(--accent); stroke-width: 2; }
+.viz-terminal.highlight circle:nth-of-type(2) { stroke: var(--accent); stroke-width: 3; filter: drop-shadow(0 0 3px var(--accent)); }
+
+.viz-nut { cursor: pointer; }
+.viz-nut-cap { stroke: rgba(0,0,0,0.35); stroke-width: 1.5; }
+.viz-nut-cap.size-yellow { fill: #f0d33c; }
+.viz-nut-cap.size-orange { fill: #e08a2e; }
+.viz-nut-cap.size-red { fill: #c0392b; }
+.viz-nut.highlight .viz-nut-cap { stroke: var(--accent); stroke-width: 2.5; filter: drop-shadow(0 0 3px var(--accent)); }
+
+.viz-jacket { stroke: rgba(0,0,0,0.3); stroke-width: 1; }
+.viz-jacket.g14 { fill: var(--jacket-14); }
+.viz-jacket.g12 { fill: var(--jacket-12); }
+.viz-cable-label { font-size: 10px; font-weight: 600; fill: var(--ink); text-anchor: middle; }
+.viz-cable-type { font-family: var(--font-label); font-size: 8px; fill: var(--ink-soft); text-anchor: middle; }
+
+.viz-line { fill: none; stroke-width: 3.5; stroke-linecap: round; }
+.viz-line.c-black { stroke: var(--wire-black); }
+.viz-line.c-white { stroke: var(--wire-white); stroke-width: 3; }
+.viz-line.c-red { stroke: var(--wire-red); }
+.viz-line.c-ground { stroke: var(--wire-ground); }
+.viz-line.dangling { stroke-dasharray: 2 3; opacity: 0.75; }
+.viz-line.highlight { stroke-width: 5.5; filter: drop-shadow(0 0 3px var(--accent)); }
+.viz-dangling-end { stroke: rgba(0,0,0,0.35); stroke-width: 1; }
+.viz-dangling-end.c-black { fill: var(--wire-black); }
+.viz-dangling-end.c-white { fill: var(--wire-white); }
+.viz-dangling-end.c-red { fill: var(--wire-red); }
+.viz-dangling-end.c-ground { fill: var(--wire-ground); }
+
+.viz-wire-endpoint circle:not(.viz-hit):not(.viz-endpoint-ring) { stroke: rgba(0,0,0,0.4); stroke-width: 1.2; }
+.viz-wire-endpoint circle.c-black { fill: var(--wire-black); }
+.viz-wire-endpoint circle.c-white { fill: var(--wire-white); }
+.viz-wire-endpoint circle.c-red { fill: var(--wire-red); }
+.viz-wire-endpoint circle.c-ground { fill: var(--wire-ground); }
+.viz-endpoint-ring { fill: none; stroke: transparent; stroke-width: 2.5; }
+.viz-wire-endpoint.free { cursor: pointer; }
+.viz-wire-endpoint.free:hover .viz-endpoint-ring { stroke: var(--ink-soft); opacity: 0.5; }
+.viz-wire-endpoint.selected .viz-endpoint-ring { stroke: var(--accent); opacity: 1; }
+.viz-wire-endpoint.used { cursor: default; }
+.viz-wire-endpoint.used circle:not(.viz-hit):not(.viz-endpoint-ring) { opacity: 0.55; }
+.viz-wire-endpoint.highlight .viz-endpoint-ring { stroke: var(--accent); opacity: 1; filter: drop-shadow(0 0 3px var(--accent)); }
+
+.nut-card.flash { animation: nutFlash 0.9s ease; }
+@keyframes nutFlash {
+  0%, 100% { box-shadow: none; }
+  30% { box-shadow: 0 0 0 3px var(--accent); }
+}
 
 /* Wires panel */
 .wire-form { display: flex; flex-wrap: wrap; gap: 8px; margin-bottom: 16px; }

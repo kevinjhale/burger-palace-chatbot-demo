@@ -40,6 +40,7 @@
     const swId = uid();
     return {
       gangs: 1,
+      viewMode: "visual",
       switches: [{ id: swId, type: "single-pole" }],
       cables: [],
       wires: [],
@@ -56,7 +57,11 @@
   function loadState() {
     try {
       const raw = localStorage.getItem(STORAGE_KEY);
-      if (raw) return JSON.parse(raw);
+      if (raw) {
+        const parsed = JSON.parse(raw);
+        if (!parsed.viewMode) parsed.viewMode = "visual";
+        return parsed;
+      }
     } catch (e) {
       console.warn("Could not load saved state", e);
     }
@@ -132,6 +137,13 @@
       if (!keepIds.has(swId)) delete state.terminals[swId];
     });
     state.switches = next;
+    saveState();
+    render();
+  }
+
+  function setViewMode(mode) {
+    if (mode !== "visual" && mode !== "schematic") return;
+    state.viewMode = mode;
     saveState();
     render();
   }
@@ -465,6 +477,25 @@
   }
 
   function renderDiagram() {
+    document.querySelectorAll("#viewModeSelect .seg-btn").forEach((btn) => {
+      btn.classList.toggle("active", btn.dataset.mode === state.viewMode);
+    });
+    document.getElementById("diagramHint").textContent =
+      state.viewMode === "visual"
+        ? "Wires sticking out of the box are unconnected. Click one to select it for a wire nut, or click a terminal screw to land a wire on it."
+        : "Terminals show what's currently landed on each screw. Click a terminal to connect a wire.";
+
+    const visualEl = document.getElementById("boxDiagramVisual");
+    const schematicEl = document.getElementById("boxDiagram");
+    const isVisual = state.viewMode === "visual";
+    visualEl.classList.toggle("hidden", !isVisual);
+    schematicEl.classList.toggle("hidden", isVisual);
+
+    if (isVisual) renderVisualDiagram();
+    else renderSchematicDiagram();
+  }
+
+  function renderSchematicDiagram() {
     const el = document.getElementById("boxDiagram");
     el.innerHTML = state.switches
       .map((sw, idx) => {
@@ -474,7 +505,7 @@
             const conn = state.terminals[sw.id]?.[t.key];
             const info = connectionInfo(conn);
             return `
-          <div class="terminal-row" data-switch-id="${sw.id}" data-term-key="${t.key}">
+          <div class="terminal-row terminal-marker" data-switch-id="${sw.id}" data-term-key="${t.key}">
             <span class="screw-dot screw-${t.screw}"></span>
             <div class="terminal-info">
               <div class="t-name">${t.label}</div>
@@ -493,6 +524,236 @@
         </div>`;
       })
       .join("");
+  }
+
+  // ---------- visual box diagram ----------
+  const VIZ = { gangW: 132, boxTop: 70, boxH: 224, wireStep: 20, stubH: 30, cableSlot: 118, sidePad: 40 };
+
+  function vizGeometry() {
+    const gangs = state.gangs;
+    const boxW = gangs * VIZ.gangW;
+    const cablesW = state.cables.length > 0 ? state.cables.length * VIZ.cableSlot : 0;
+    const contentW = Math.max(boxW, cablesW);
+    const boxX = VIZ.sidePad + (contentW - boxW) / 2;
+    const boxY = VIZ.boxTop;
+    const boxH = VIZ.boxH;
+    const boxBottom = boxY + boxH;
+    return {
+      boxX,
+      boxW,
+      boxY,
+      boxH,
+      boxBottom,
+      contentX: VIZ.sidePad,
+      contentW,
+      width: VIZ.sidePad * 2 + contentW,
+      height: boxBottom + 78,
+    };
+  }
+
+  function vizTerminalPositions(sw, slotX, geo) {
+    const def = SWITCH_TYPES[sw.type];
+    const nonGround = def.terminals.filter((t) => t.key !== "ground");
+    const ground = def.terminals.find((t) => t.key === "ground");
+    const top = geo.boxY + 50;
+    const bottom = geo.boxBottom - 70;
+    const positions = {};
+    nonGround.forEach((t, i) => {
+      const y = nonGround.length === 1 ? (top + bottom) / 2 : top + ((bottom - top) * i) / (nonGround.length - 1);
+      positions[t.key] = { x: slotX + VIZ.gangW - 34, y, t };
+    });
+    if (ground) positions[ground.key] = { x: slotX + 34, y: geo.boxBottom - 40, t: ground };
+    return positions;
+  }
+
+  function vizBuildLayout() {
+    const geo = vizGeometry();
+    const terminalPos = {};
+    state.switches.forEach((sw, i) => {
+      const slotX = geo.boxX + i * VIZ.gangW;
+      terminalPos[sw.id] = vizTerminalPositions(sw, slotX, geo);
+    });
+
+    const nutPos = {};
+    state.nuts.forEach((nut, i) => {
+      const n = state.nuts.length;
+      const x = geo.contentX + (geo.contentW * (i + 1)) / (n + 1);
+      nutPos[nut.id] = { x, y: geo.boxY + 24 };
+    });
+
+    const wirePos = {};
+    const cableStubs = [];
+    const cableGap = geo.contentW / (state.cables.length + 1);
+    state.cables.forEach((cable, ci) => {
+      const stubX = geo.contentX + cableGap * (ci + 1);
+      const conductors = state.wires.filter((w) => w.cableId === cable.id);
+      conductors.forEach((w, wi) => {
+        const spread = (wi - (conductors.length - 1) / 2) * 17;
+        wirePos[w.id] = { x: stubX + spread, y: geo.boxBottom - 46 - wi * VIZ.wireStep, stubX, stubY: geo.boxBottom };
+      });
+      cableStubs.push({ cable, x: stubX });
+    });
+
+    return { geo, terminalPos, nutPos, wirePos, cableStubs };
+  }
+
+  function vizNutSize(nut) {
+    return nut.wireIds.length <= 2 ? "yellow" : nut.wireIds.length <= 4 ? "orange" : "red";
+  }
+
+  function renderVisualDiagram() {
+    const { geo, terminalPos, nutPos, wirePos, cableStubs } = vizBuildLayout();
+    const parts = [];
+
+    // wall + box shell
+    parts.push(`<rect class="viz-wall" x="0" y="0" width="${geo.width}" height="${geo.height}"></rect>`);
+    parts.push(
+      `<rect class="viz-box" x="${geo.boxX}" y="${geo.boxY}" width="${geo.boxW}" height="${geo.boxH}" rx="6"></rect>`
+    );
+    parts.push(
+      `<rect class="viz-box-lip" x="${geo.boxX + 4}" y="${geo.boxY + 4}" width="${geo.boxW - 8}" height="${geo.boxH - 8}" rx="4"></rect>`
+    );
+
+    // device straps drawn first (background layer) so wires can visibly cross over them
+    state.switches.forEach((sw, i) => {
+      const slotX = geo.boxX + i * VIZ.gangW;
+      const strapX = slotX + 22;
+      const strapW = VIZ.gangW - 44;
+      const strapY = geo.boxY + 30;
+      const strapH = geo.boxH - 66;
+      parts.push(
+        `<rect class="viz-strap" x="${strapX}" y="${strapY}" width="${strapW}" height="${strapH}" rx="5"></rect>`
+      );
+      parts.push(`<circle class="viz-mount-screw" cx="${strapX + strapW / 2}" cy="${strapY + 10}" r="3.5"></circle>`);
+      parts.push(
+        `<circle class="viz-mount-screw" cx="${strapX + strapW / 2}" cy="${strapY + strapH - 10}" r="3.5"></circle>`
+      );
+      parts.push(
+        `<rect class="viz-toggle" x="${strapX + strapW / 2 - 8}" y="${strapY + strapH / 2 - 20}" width="16" height="40" rx="3"></rect>`
+      );
+      parts.push(
+        `<text class="viz-device-label" x="${slotX + VIZ.gangW / 2}" y="${geo.boxY - 8}" text-anchor="middle">Switch ${i + 1}</text>`
+      );
+    });
+
+    // connecting lines (drawn over the straps, under the terminal screws / endpoints)
+    const lines = [];
+    // every conductor's strand from its cable jacket up to its staging point — always visible,
+    // this is the "wire coming out of the box" even before it's connected to anything
+    state.wires
+      .filter((w) => !w.isPigtail)
+      .forEach((w) => {
+        const pos = wirePos[w.id];
+        if (!pos) return;
+        lines.push({ x1: pos.stubX, y1: pos.stubY, x2: pos.x, y2: pos.y, color: w.color, wireId: w.id, strand: true });
+      });
+    state.nuts.forEach((nut) => {
+      nut.wireIds.forEach((wireId) => {
+        const w = wireById(wireId);
+        if (!w || w.isPigtail) return;
+        const pos = wirePos[wireId];
+        if (!pos) return;
+        lines.push({ x1: pos.x, y1: pos.y, x2: nutPos[nut.id].x, y2: nutPos[nut.id].y, color: w.color, wireId });
+      });
+    });
+    state.wires
+      .filter((w) => w.isPigtail)
+      .forEach((w) => {
+        const nut = state.nuts.find((n) => n.wireIds.includes(w.id));
+        if (!nut) return;
+        const from = nutPos[nut.id];
+        const usage = wireUsage(w.id);
+        if (usage.onTerminal) {
+          const tp = terminalPos[usage.onTerminal.switchId]?.[usage.onTerminal.key];
+          if (tp) lines.push({ x1: from.x, y1: from.y, x2: tp.x, y2: tp.y, color: w.color, wireId: w.id });
+        } else {
+          lines.push({ x1: from.x, y1: from.y, x2: from.x, y2: from.y + 28, color: w.color, wireId: w.id, dangling: true });
+        }
+      });
+    state.switches.forEach((sw) => {
+      const def = SWITCH_TYPES[sw.type];
+      def.terminals.forEach((t) => {
+        const conn = state.terminals[sw.id]?.[t.key];
+        if (!conn) return;
+        const w = wireById(conn.id);
+        if (!w || w.isPigtail) return;
+        const pos = wirePos[w.id];
+        if (!pos) return;
+        const tp = terminalPos[sw.id][t.key];
+        lines.push({ x1: pos.x, y1: pos.y, x2: tp.x, y2: tp.y, color: w.color, wireId: w.id });
+      });
+    });
+
+    lines.forEach((l) => {
+      parts.push(
+        `<path class="viz-line c-${l.color} ${l.dangling ? "dangling" : ""}" data-wire-id="${l.wireId}" d="M ${l.x1} ${l.y1} L ${l.x2} ${l.y2}"></path>`
+      );
+    });
+    lines
+      .filter((l) => l.dangling)
+      .forEach((l) => {
+        parts.push(`<circle class="viz-dangling-end c-${l.color}" cx="${l.x2}" cy="${l.y2}" r="4"></circle>`);
+      });
+
+    // terminal screws drawn after the lines so a landed wire visibly ends at the screw
+    state.switches.forEach((sw) => {
+      Object.values(terminalPos[sw.id]).forEach((tp) => {
+        parts.push(`
+          <g class="terminal-marker viz-terminal" data-switch-id="${sw.id}" data-term-key="${tp.t.key}">
+            <circle class="viz-hit" cx="${tp.x}" cy="${tp.y}" r="14"></circle>
+            <circle class="screw-${tp.t.screw}" cx="${tp.x}" cy="${tp.y}" r="8"></circle>
+            <line x1="${tp.x - 4.5}" y1="${tp.y}" x2="${tp.x + 4.5}" y2="${tp.y}" class="viz-screw-slot"></line>
+          </g>`);
+      });
+    });
+
+    // wire nuts
+    state.nuts.forEach((nut) => {
+      const pos = nutPos[nut.id];
+      const size = vizNutSize(nut);
+      parts.push(`
+        <g class="nut-marker viz-nut" data-nut-id="${nut.id}">
+          <circle class="viz-hit" cx="${pos.x}" cy="${pos.y}" r="16"></circle>
+          <path class="viz-nut-cap size-${size}" d="M ${pos.x - 11} ${pos.y + 9} Q ${pos.x - 11} ${pos.y - 13} ${pos.x} ${pos.y - 15} Q ${pos.x + 11} ${pos.y - 13} ${pos.x + 11} ${pos.y + 9} Z"></path>
+        </g>`);
+    });
+
+    // cable stubs + wire endpoints
+    const truncate = (s, n) => (s.length > n ? s.slice(0, n - 1) + "…" : s);
+    cableStubs.forEach(({ cable, x }) => {
+      const type = CABLE_TYPES[cable.type];
+      parts.push(
+        `<rect class="viz-jacket g${type.gauge}" x="${x - 11}" y="${geo.boxBottom - 4}" width="22" height="${VIZ.stubH}" rx="3"></rect>`
+      );
+      parts.push(
+        `<text class="viz-cable-label" x="${x}" y="${geo.boxBottom + VIZ.stubH + 16}" text-anchor="middle">${escapeHtml(truncate(cable.label, 15))}</text>`
+      );
+      parts.push(
+        `<text class="viz-cable-type" x="${x}" y="${geo.boxBottom + VIZ.stubH + 28}" text-anchor="middle">${type.display}</text>`
+      );
+    });
+
+    state.wires
+      .filter((w) => !w.isPigtail)
+      .forEach((w) => {
+        const pos = wirePos[w.id];
+        if (!pos) return;
+        const usage = wireUsage(w.id);
+        const inUse = !!(usage.inNut || usage.onTerminal);
+        const selected = selectedForBundle.has(w.id);
+        const label = wireDisplayLabel(w);
+        parts.push(`
+          <g class="viz-wire-endpoint ${inUse ? "used" : "free"} ${selected ? "selected" : ""}" data-wire-id="${w.id}">
+            <circle class="viz-hit" cx="${pos.x}" cy="${pos.y}" r="13"></circle>
+            <circle class="viz-endpoint-ring" cx="${pos.x}" cy="${pos.y}" r="9"></circle>
+            <circle class="c-${w.color}" cx="${pos.x}" cy="${pos.y}" r="6"></circle>
+            <title>${escapeHtml(label)} (${w.gauge} AWG)${inUse ? "" : " — click to select for a wire nut"}</title>
+          </g>`);
+      });
+
+    const displayW = Math.round(Math.min(620, Math.max(300, geo.width * 1.7)));
+    const svg = `<svg viewBox="0 0 ${geo.width} ${geo.height}" style="max-width:${displayW}px" preserveAspectRatio="xMidYMin meet" role="img" aria-label="Visual switch box diagram">${parts.join("")}</svg>`;
+    document.getElementById("boxDiagramVisual").innerHTML = svg;
   }
 
   function conductorChip(w, { showActions } = { showActions: true }) {
@@ -593,7 +854,7 @@
         });
         const warn = nutWarning(nut);
         return `
-        <div class="nut-card" data-nut-id="${nut.id}">
+        <div class="nut-card nut-marker" data-nut-id="${nut.id}">
           <div class="nut-card-head">
             <span class="nut-cap size-${size}"></span>
             <input type="text" class="nut-title-input" value="${escapeHtml(nut.label)}" data-action="rename-nut" data-nut-id="${nut.id}">
@@ -653,11 +914,19 @@
       document.querySelectorAll(`[data-wire-id="${id}"]`).forEach((elm) => elm.classList.add("highlight"));
     });
     (step.highlight.nuts || []).forEach((id) => {
-      document.querySelectorAll(`.nut-card[data-nut-id="${id}"]`).forEach((elm) => elm.classList.add("highlight"));
+      document.querySelectorAll(`.nut-marker[data-nut-id="${id}"]`).forEach((elm) => elm.classList.add("highlight"));
     });
     (step.highlight.terminals || []).forEach(({ switchId, key }) => {
-      document.querySelectorAll(`.terminal-row[data-switch-id="${switchId}"][data-term-key="${key}"]`).forEach((elm) => elm.classList.add("highlight"));
+      document.querySelectorAll(`.terminal-marker[data-switch-id="${switchId}"][data-term-key="${key}"]`).forEach((elm) => elm.classList.add("highlight"));
     });
+  }
+
+  function flashNutCard(nutId) {
+    const card = document.querySelector(`.nut-card[data-nut-id="${nutId}"]`);
+    if (!card) return;
+    card.scrollIntoView({ behavior: "smooth", block: "center" });
+    card.classList.add("flash");
+    setTimeout(() => card.classList.remove("flash"), 900);
   }
 
   // ---------- terminal modal ----------
@@ -780,10 +1049,30 @@
       true
     );
 
-    document.getElementById("boxDiagram").addEventListener("click", (e) => {
-      const row = e.target.closest(".terminal-row");
-      if (row) openTerminalModal(row.dataset.switchId, row.dataset.termKey);
+    document.getElementById("viewModeSelect").addEventListener("click", (e) => {
+      const btn = e.target.closest(".seg-btn");
+      if (btn) setViewMode(btn.dataset.mode);
     });
+
+    const handleDiagramClick = (e) => {
+      const term = e.target.closest(".terminal-marker");
+      if (term) {
+        openTerminalModal(term.dataset.switchId, term.dataset.termKey);
+        return;
+      }
+      const wireEndpoint = e.target.closest(".viz-wire-endpoint");
+      if (wireEndpoint) {
+        toggleWireSelect(wireEndpoint.dataset.wireId);
+        return;
+      }
+      const nutMarker = e.target.closest(".viz-nut");
+      if (nutMarker) {
+        flashNutCard(nutMarker.dataset.nutId);
+        return;
+      }
+    };
+    document.getElementById("boxDiagram").addEventListener("click", handleDiagramClick);
+    document.getElementById("boxDiagramVisual").addEventListener("click", handleDiagramClick);
 
     document.getElementById("terminalCloseBtn").addEventListener("click", closeTerminalModal);
     document.getElementById("terminalModal").addEventListener("click", (e) => {

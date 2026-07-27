@@ -40,8 +40,9 @@ A separate, self-contained tool for walking someone through wiring a light switc
 
 Features:
 - 1-gang, 2-gang, or 3-gang box setup, with each switch configurable as single-pole or 3-way.
+- A **Visual mode** for the box diagram: an SVG box mounted on a wall, cables entering from below and fanning into individual color-coded wire strands inside the box, a switch strap with terminal screws, and wire-nut icons — click a wire to select it for a nut, click a terminal screw to land a wire on it. A **Schematic mode** (compact list-style terminals) is also available via the toggle above the diagram.
 - Wires are pulled in as real NM-B cable runs — 14/2 w/G, 12/2 w/G, or 14/3 w/G — each automatically split into its individual color-coded conductors (black/white/ground, or black/white/red/ground).
-- Select two or more unassigned conductors and twist them into an editable wire nut — add, remove, rename, or delete the bundle at any time.
+- Select two or more unassigned conductors (in either diagram mode, or the cable list) and twist them into an editable wire nut — add, remove, rename, or delete the bundle at any time.
 - Add a pigtail (a short jumper of a chosen color, gauge-matched to the splice) directly to a wire nut, then land its free end on any switch terminal — same as a real pigtail splice.
 - Click any switch terminal to land a wire (including a pigtail) directly on it.
 - A live step-by-step walkthrough (with Prev/Next and a jump list) that regenerates from the current wiring, plus a print view for handing someone a paper copy.

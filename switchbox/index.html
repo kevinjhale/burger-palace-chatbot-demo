@@ -36,8 +36,15 @@
 
   <!-- Diagram -->
   <section class="panel diagram-panel">
-    <h2>2. Box Diagram</h2>
-    <p class="hint">Terminals show what's currently landed on each screw. Click a terminal to connect a wire or a wire-nut pigtail.</p>
+    <div class="diagram-head">
+      <h2 class="diagram-h2">2. Box Diagram</h2>
+      <div class="segmented segmented-sm" id="viewModeSelect">
+        <button data-mode="visual" class="seg-btn">Visual</button>
+        <button data-mode="schematic" class="seg-btn">Schematic</button>
+      </div>
+    </div>
+    <p class="hint" id="diagramHint">Wires sticking out of the box are unconnected. Click one to select it for a wire nut, or click a terminal screw to land a wire on it.</p>
+    <div id="boxDiagramVisual" class="box-diagram-visual"></div>
     <div id="boxDiagram" class="box-diagram"></div>
   </section>
 
