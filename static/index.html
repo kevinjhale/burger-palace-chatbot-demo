@@ -1,0 +1,39 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+  <meta charset="UTF-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1.0">
+  <title>Trade Skills Tracker</title>
+  <link rel="stylesheet" href="/static/styles.css">
+</head>
+<body>
+  <header class="topbar">
+    <div class="brand">🔨 Trade Skills Tracker</div>
+    <div class="identity" id="identity-box">
+      <!-- filled by app.js: sign-in select + PIN, or signed-in badge -->
+    </div>
+  </header>
+
+  <nav class="tabs" id="tabs">
+    <button data-tab="assess" class="active">Fill Out Review</button>
+    <button data-tab="oneonone">One-on-One</button>
+    <button data-tab="progress">Progress</button>
+    <button data-tab="capabilities">Who Can Do What</button>
+    <button data-tab="goals">Goals</button>
+    <button data-tab="team">Team</button>
+  </nav>
+
+  <main>
+    <section id="tab-assess" class="tab-panel active"></section>
+    <section id="tab-oneonone" class="tab-panel"></section>
+    <section id="tab-progress" class="tab-panel"></section>
+    <section id="tab-capabilities" class="tab-panel"></section>
+    <section id="tab-goals" class="tab-panel"></section>
+    <section id="tab-team" class="tab-panel"></section>
+  </main>
+
+  <div id="toast" class="toast hidden"></div>
+
+  <script src="/static/app.js"></script>
+</body>
+</html>

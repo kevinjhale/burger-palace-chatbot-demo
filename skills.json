@@ -1,0 +1,228 @@
+{
+  "categories": [
+    {
+      "id": "planning",
+      "name": "Planning, Design & Preconstruction",
+      "skills": [
+        { "id": "blueprint_reading", "name": "Blueprint & plan reading" },
+        { "id": "arch_design", "name": "Architectural design basics" },
+        { "id": "structural_drawings", "name": "Structural drawing interpretation" },
+        { "id": "permits_codes", "name": "Permitting & building code compliance" },
+        { "id": "estimating", "name": "Estimating & material takeoffs" },
+        { "id": "scheduling", "name": "Project scheduling & sequencing" },
+        { "id": "site_layout_planning", "name": "Site planning & layout" },
+        { "id": "scope_review", "name": "Contract & scope-of-work review" }
+      ]
+    },
+    {
+      "id": "sitework",
+      "name": "Site Work & Foundations",
+      "skills": [
+        { "id": "surveying", "name": "Surveying & site layout (squaring, elevations)" },
+        { "id": "excavation", "name": "Excavation & grading" },
+        { "id": "erosion_control", "name": "Erosion control & drainage" },
+        { "id": "formwork", "name": "Concrete formwork" },
+        { "id": "rebar", "name": "Rebar & reinforcement placement" },
+        { "id": "concrete_pour", "name": "Concrete pouring & finishing" },
+        { "id": "foundation_waterproofing", "name": "Foundation waterproofing & dampproofing" }
+      ]
+    },
+    {
+      "id": "framing",
+      "name": "Framing & Structural",
+      "skills": [
+        { "id": "floor_framing", "name": "Floor system framing (joists, beams, subfloor)" },
+        { "id": "wall_framing", "name": "Wall framing & layout" },
+        { "id": "roof_framing", "name": "Roof framing & truss setting" },
+        { "id": "stairs", "name": "Stair construction" },
+        { "id": "structural_hardware", "name": "Structural hardware & fastening schedules" },
+        { "id": "sheathing", "name": "Sheathing (wall & roof)" },
+        { "id": "steel_framing", "name": "Steel / metal stud framing" }
+      ]
+    },
+    {
+      "id": "exterior",
+      "name": "Exterior Envelope",
+      "skills": [
+        { "id": "roofing_shingle", "name": "Roofing — asphalt shingle" },
+        { "id": "roofing_metal", "name": "Roofing — metal / flat / membrane" },
+        { "id": "housewrap_flashing", "name": "House wrap, WRB & flashing details" },
+        { "id": "siding", "name": "Siding installation" },
+        { "id": "exterior_trim", "name": "Exterior trim, soffit & fascia" },
+        { "id": "windows_install", "name": "Window installation & flashing" },
+        { "id": "exterior_doors", "name": "Exterior door installation" },
+        { "id": "gutters", "name": "Gutters & downspouts" },
+        { "id": "decks", "name": "Decks, porches & exterior stairs" }
+      ]
+    },
+    {
+      "id": "plumbing",
+      "name": "Plumbing",
+      "skills": [
+        { "id": "plumbing_roughin", "name": "Plumbing rough-in" },
+        { "id": "dwv", "name": "Drain, waste & vent (DWV) systems" },
+        { "id": "water_supply", "name": "Water supply lines (PEX, copper, CPVC)" },
+        { "id": "fixture_install", "name": "Fixture installation (sinks, toilets, tubs)" },
+        { "id": "water_heaters", "name": "Water heater installation" },
+        { "id": "gas_lines", "name": "Gas line installation" },
+        { "id": "plumbing_repair", "name": "Plumbing troubleshooting & repair" }
+      ]
+    },
+    {
+      "id": "electrical",
+      "name": "Electrical",
+      "skills": [
+        { "id": "electrical_roughin", "name": "Electrical rough-in (boxes, wire pulls)" },
+        { "id": "panels", "name": "Service panels & breakers" },
+        { "id": "circuits", "name": "Wiring circuits & load calculation" },
+        { "id": "devices_fixtures", "name": "Device & fixture installation (outlets, switches, lights)" },
+        { "id": "low_voltage", "name": "Low voltage, data & security wiring" },
+        { "id": "electrical_troubleshooting", "name": "Electrical troubleshooting" },
+        { "id": "nec_code", "name": "Electrical code (NEC) knowledge" }
+      ]
+    },
+    {
+      "id": "hvac",
+      "name": "HVAC",
+      "skills": [
+        { "id": "ductwork", "name": "Ductwork fabrication & installation" },
+        { "id": "hvac_equipment", "name": "HVAC equipment installation (furnace, AC, heat pump)" },
+        { "id": "ventilation", "name": "Ventilation & exhaust (bath fans, range hoods, fresh air)" },
+        { "id": "hvac_troubleshooting", "name": "HVAC troubleshooting & service" }
+      ]
+    },
+    {
+      "id": "insulation",
+      "name": "Insulation & Air Sealing",
+      "skills": [
+        { "id": "batt_insulation", "name": "Batt & roll insulation" },
+        { "id": "blown_insulation", "name": "Blown-in insulation" },
+        { "id": "spray_foam", "name": "Spray foam application" },
+        { "id": "air_sealing", "name": "Air sealing & caulking penetrations" },
+        { "id": "vapor_barriers", "name": "Vapor barriers & moisture control" }
+      ]
+    },
+    {
+      "id": "drywall",
+      "name": "Drywall & Plaster",
+      "skills": [
+        { "id": "drywall_hanging", "name": "Drywall hanging" },
+        { "id": "taping_mudding", "name": "Taping, mudding & finishing levels" },
+        { "id": "texture", "name": "Texture application & matching" },
+        { "id": "drywall_repair", "name": "Patching & repair" },
+        { "id": "plaster", "name": "Plaster work" }
+      ]
+    },
+    {
+      "id": "painting",
+      "name": "Painting & Coatings",
+      "skills": [
+        { "id": "surface_prep", "name": "Surface prep (sanding, masking, priming)" },
+        { "id": "interior_painting", "name": "Interior painting (brush & roll)" },
+        { "id": "exterior_painting", "name": "Exterior painting" },
+        { "id": "staining", "name": "Staining, sealing & clear coats" },
+        { "id": "spray_finishing", "name": "Spray finishing" }
+      ]
+    },
+    {
+      "id": "finish_carpentry",
+      "name": "Finish Carpentry & Trim",
+      "skills": [
+        { "id": "baseboard_casing", "name": "Baseboard & door/window casing" },
+        { "id": "crown_molding", "name": "Crown molding & specialty trim" },
+        { "id": "door_hanging", "name": "Interior door hanging & hardware" },
+        { "id": "cabinet_install", "name": "Cabinet installation" },
+        { "id": "builtins", "name": "Built-ins, shelving & closet systems" },
+        { "id": "countertops", "name": "Countertop templating & installation" },
+        { "id": "stair_trim", "name": "Stair trim, railings & balusters" },
+        { "id": "scribing_coping", "name": "Scribing, coping & tight joinery" }
+      ]
+    },
+    {
+      "id": "flooring",
+      "name": "Flooring",
+      "skills": [
+        { "id": "subfloor_prep", "name": "Subfloor prep & leveling" },
+        { "id": "hardwood", "name": "Hardwood installation & refinishing" },
+        { "id": "lvp_laminate", "name": "LVP & laminate installation" },
+        { "id": "tile_floor", "name": "Tile flooring" },
+        { "id": "carpet", "name": "Carpet installation" }
+      ]
+    },
+    {
+      "id": "tile_masonry",
+      "name": "Tile & Masonry",
+      "skills": [
+        { "id": "wall_tile", "name": "Wall tile & backsplash" },
+        { "id": "shower_surrounds", "name": "Shower & tub surrounds" },
+        { "id": "waterproof_membranes", "name": "Waterproofing membranes (wet areas)" },
+        { "id": "grout_seal", "name": "Grouting & sealing" },
+        { "id": "brick_block", "name": "Brick & block laying" },
+        { "id": "stone_work", "name": "Stone veneer & masonry finishes" }
+      ]
+    },
+    {
+      "id": "punch",
+      "name": "Punch List & Quality",
+      "skills": [
+        { "id": "punch_execution", "name": "Punch list execution" },
+        { "id": "touch_ups", "name": "Finish touch-ups (paint, trim, filler)" },
+        { "id": "caulk_sealants", "name": "Caulking & sealants (finish grade)" },
+        { "id": "final_clean", "name": "Final cleaning & turnover standards" },
+        { "id": "quality_inspection", "name": "Quality inspection & walkthroughs" }
+      ]
+    },
+    {
+      "id": "tools",
+      "name": "Tools & Equipment",
+      "skills": [
+        { "id": "hand_tools", "name": "Hand tool proficiency" },
+        { "id": "power_tools", "name": "Power tool proficiency (saws, routers, nailers)" },
+        { "id": "heavy_equipment", "name": "Heavy equipment operation (skid steer, excavator, lifts)" },
+        { "id": "tool_maintenance", "name": "Tool & equipment maintenance" },
+        { "id": "material_handling", "name": "Material handling, loading & staging" }
+      ]
+    },
+    {
+      "id": "safety",
+      "name": "Safety",
+      "skills": [
+        { "id": "osha", "name": "Jobsite safety & OSHA standards" },
+        { "id": "ladder_scaffold", "name": "Ladder & scaffold safety" },
+        { "id": "fall_protection", "name": "Fall protection" },
+        { "id": "ppe", "name": "PPE use & enforcement" },
+        { "id": "first_aid", "name": "First aid & emergency response" },
+        { "id": "site_hazards", "name": "Hazard identification & reporting" }
+      ]
+    },
+    {
+      "id": "business",
+      "name": "Business & Client",
+      "skills": [
+        { "id": "customer_communication", "name": "Customer communication & professionalism" },
+        { "id": "change_orders", "name": "Change orders & documentation" },
+        { "id": "material_ordering", "name": "Material ordering & inventory" },
+        { "id": "sub_coordination", "name": "Subcontractor & inspector coordination" },
+        { "id": "reporting", "name": "Jobsite photos, notes & daily reporting" }
+      ]
+    },
+    {
+      "id": "soft_skills",
+      "name": "Soft Skills",
+      "skills": [
+        { "id": "communication", "name": "Communication (crew & leadership)" },
+        { "id": "punctuality", "name": "Punctuality & reliability" },
+        { "id": "attention_detail", "name": "Attention to detail" },
+        { "id": "problem_solving", "name": "Problem solving & resourcefulness" },
+        { "id": "teamwork", "name": "Teamwork" },
+        { "id": "work_ethic", "name": "Work ethic & initiative" },
+        { "id": "adaptability", "name": "Adaptability & willingness to learn" },
+        { "id": "feedback", "name": "Receiving & applying feedback" },
+        { "id": "time_management", "name": "Time management" },
+        { "id": "cleanliness", "name": "Jobsite cleanliness & organization" },
+        { "id": "leadership", "name": "Leadership & running a crew" },
+        { "id": "mentoring", "name": "Mentoring & teaching others" }
+      ]
+    }
+  ]
+}
